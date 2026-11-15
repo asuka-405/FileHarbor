@@ -3,7 +3,7 @@
 All notable changes to FileHarbor. The version is in the `VERSION` file; FileHarbor 0.x is based on
 Nemo 6.8.3.
 
-## Unreleased
+## 0.1.1
 
 ### Interface
 - Renamed the app identity to FileHarbor / `in.archdev.FileHarbor` (binary `fileharbor`, with a `nemo`
