@@ -24,7 +24,7 @@ The background service and the folder default are changed by `fileharbor-setup`,
 - **Built-in tools**: editor, Markdown preview and media player for their file types, terminal panel, ssh following.
 - **Developer mode**.
 - **Storage Sense service**: *on-demand* (starts when the Storage page asks, the default), *always* (a systemd unit starts it at login) or *off*. `--root DIR` and `--threshold-mb N` change what it indexes and when it rescans (written as a systemd drop-in).
-- **Phones, cameras and shares**: checks that the gvfs backends for phones (MTP), cameras (PTP), iPhones (AFC), SMB and NFS are installed, and prints the install command if not. Without them FileHarbor shows only drives that mount as storage.
+- **Phones, cameras and shares**: checks that the gvfs backends for phones (MTP), cameras (PTP), iPhones (AFC), SMB and NFS are installed. If not, the setup page opens (also on later starts, until you install them or press *Don't ask again*) with an **Install now** button. The system then shows its password prompt (the authentication or keyring dialog) once, and the package manager finishes by itself. In a terminal, `fileharbor-setup --install-devices` does the same through `pkexec`. Without these packages FileHarbor shows only drives that mount as storage. Inside Flatpak the host's gvfs is used and nothing is asked.
 - **Desktop integration**: make FileHarbor the default for folders, and answer "Show in folder" requests (`org.freedesktop.FileManager1`).
 
 Settings are copied from an earlier Nemo install automatically when FileHarbor first starts, not by this tool.

@@ -149,6 +149,11 @@
       <summary>The one-time setup has been done or skipped</summary>
       <description>Set when the first-run setup page has been applied, skipped or dismissed for good. Reset it to see the page again at the next start, or use Tools > FileHarbor setup.</description>
     </key>
+    <key name="devices-hint-dismissed" type="b">
+      <default>false</default>
+      <summary>Do not offer to install the phone, camera and share backends</summary>
+      <description>Set when the offer to install the gvfs packages for phones, cameras and shared folders has been answered or dismissed.</description>
+    </key>
     <key name="terminal-panel-visible" type="b">
       <default>true</default>
       <summary>Show the terminal panel</summary>

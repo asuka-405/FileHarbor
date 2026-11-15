@@ -93,6 +93,8 @@ GVFS_BACKENDS = [
 
 
 def missing_backends():
+    if os.path.exists("/.flatpak-info"):               # inside Flatpak the host's gvfs does the work
+        return []
     dirs = [os.path.join(d, "gvfs") for d in GLib.get_system_data_dirs()]
     return [(what, pkg) for what, rel, pkg in GVFS_BACKENDS if not any(os.path.exists(os.path.join(d, rel)) for d in dirs)]
 
@@ -150,6 +152,11 @@ class SetupPage(ToolPage):
         body.pack_start(_label("Choices take effect as soon as you make them. Everything can be changed later in Edit > Appearance "
                                "and Preferences, and Tools > FileHarbor setup opens this page again.", dim=True), False, False, 0)
 
+        self.devices_box = None
+        missing = missing_backends()
+        if missing and not self.s.get_boolean("devices-hint-dismissed"):
+            self._devices_banner(body, missing)
+
         # appearance
         body.pack_start(_label("Appearance", bold=True), False, False, 6)
         grid = self._grid()
@@ -198,14 +205,6 @@ class SetupPage(ToolPage):
         self.default_mgr.set_active(self.is_default_manager())
         self.default_mgr.connect("toggled", self.set_default_manager)
         body.pack_start(self.default_mgr, False, False, 0)
-
-        missing = missing_backends()
-        if missing:
-            body.pack_start(_label("Phones, cameras and shares", bold=True), False, False, 6)
-            note = _label("Your system lacks support for: %s. Without it FileHarbor cannot see those devices. Install: %s"
-                          % (", ".join(w for w, _ in missing), install_hint(missing)))
-            note.set_selectable(True)
-            body.pack_start(note, False, False, 0)
 
         # buttons and result
         self.result = _label("", dim=True)
@@ -267,6 +266,88 @@ class SetupPage(ToolPage):
         top = self.win()
         if top is not None:
             Gtk.accel_groups_activate(top, Gdk.KEY_w, Gdk.ModifierType.CONTROL_MASK)
+
+    # ---- phones, cameras, shares ------------------------------------------
+    def _devices_banner(self, body, missing):
+        frame = Gtk.Frame()
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        box.set_border_width(14)
+        frame.add(box)
+        box.pack_start(_label("Phones, cameras and shared folders need extra packages", bold=True), False, False, 0)
+        names = "\n".join("•  %s: %s" % (pkg, what) for what, pkg in missing)
+        box.pack_start(_label("For the full experience FileHarbor needs these, and they are not installed:\n" + names), False, False, 0)
+        box.pack_start(_label("Press Install now. Your system shows a password prompt (the authentication or keyring dialog). "
+                              "Enter your password once and the installation finishes by itself.", dim=True), False, False, 0)
+        self.dev_status = _label("", dim=True)
+        self.dev_status.set_selectable(True)
+        box.pack_start(self.dev_status, False, False, 0)
+        row = Gtk.Box(spacing=8)
+        self.dev_install = Gtk.Button(label="Install now")
+        self.dev_install.get_style_context().add_class("suggested-action")
+        self.dev_install.connect("clicked", self.install_devices)
+        self.dev_later = Gtk.Button(label="Don't ask again")
+        self.dev_later.connect("clicked", self.hide_devices)
+        self.dev_restart = Gtk.Button(label="Restart FileHarbor")
+        self.dev_restart.connect("clicked", self.restart)
+        for w in (self.dev_install, self.dev_later):
+            row.pack_start(w, False, False, 0)
+        row.pack_start(self.dev_restart, False, False, 0)
+        box.pack_start(row, False, False, 0)
+        body.pack_start(frame, False, False, 6)
+        frame.show_all()
+        self.dev_restart.set_no_show_all(True)
+        self.dev_restart.hide()
+        frame.set_no_show_all(True)
+        self.devices_box = frame
+
+    def hide_devices(self, *_):
+        self.s.set_boolean("devices-hint-dismissed", True)
+        if self.devices_box is not None:
+            self.devices_box.hide()
+
+    def install_devices(self, *_):
+        prog = setup_program()
+        if prog is None:
+            self.dev_status.set_text("fileharbor-setup was not found. Run in a terminal:  " + install_hint(missing_backends()))
+            return
+        self.dev_install.set_sensitive(False)
+        self.dev_status.set_text("Waiting for your password… (look for the system prompt)")
+        try:
+            proc = Gio.Subprocess.new([prog, "--install-devices"], Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE)
+        except GLib.Error as e:
+            self.dev_install.set_sensitive(True)
+            self.dev_status.set_text(str(e))
+            return
+        proc.communicate_utf8_async(None, None, self._devices_done)
+
+    def _devices_done(self, proc, res):
+        try:
+            _ok, out, _err = proc.communicate_utf8_finish(res)
+        except GLib.Error as e:
+            out = str(e)
+        if not self._alive:
+            return
+        ok = proc.get_exit_status() == 0
+        if ok:
+            self.dev_status.set_text("Installed. Restart FileHarbor, then plug the phone in again (unlock it and choose File transfer).")
+            self.dev_install.hide()
+            self.dev_later.hide()
+            self.dev_restart.show()
+            self.s.set_boolean("devices-hint-dismissed", True)
+        else:
+            tail = [l for l in (out or "").strip().splitlines() if l.strip()][-3:]
+            msg = "The installation did not finish.\n" + "\n".join(tail)
+            if "dismissed" in (out or "").lower() or "not authorized" in (out or "").lower():
+                msg = "The password prompt was cancelled, nothing was installed."
+            if "authentication agent" in (out or "").lower():
+                msg = "This system has no password prompt available. Run in a terminal:  " + install_hint(missing_backends())
+            self.dev_status.set_text(msg)
+            self.dev_install.set_sensitive(True)
+
+    def restart(self, *_):
+        import subprocess
+        subprocess.Popen(["sh", "-c", "fileharbor -q; sleep 1; fileharbor"], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # ---- state ------------------------------------------------------------
     def saved_storage(self):

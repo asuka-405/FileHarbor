@@ -1602,13 +1602,44 @@ open_default_terminal_idle (gpointer data)
     return G_SOURCE_REMOVE;
 }
 
+/* The gvfs backends that make phones, cameras and shares visible are separate packages on most distributions. */
+static gboolean
+devices_backends_missing (void)
+{
+    static const char *const files[] = {
+        "remote-volume-monitors/mtp.monitor", "remote-volume-monitors/gphoto2.monitor",
+        "remote-volume-monitors/afc.monitor", "mounts/smb.mount", "mounts/nfs.mount", NULL
+    };
+    const char *const *dirs = g_get_system_data_dirs ();
+    int i, d;
+
+    if (g_file_test ("/.flatpak-info", G_FILE_TEST_EXISTS))
+        return FALSE;                    /* inside Flatpak the host's gvfs does the work */
+    for (i = 0; files[i] != NULL; i++) {
+        gboolean found = FALSE;
+
+        for (d = 0; dirs[d] != NULL && !found; d++) {
+            char *p = g_build_filename (dirs[d], "gvfs", files[i], NULL);
+
+            found = g_file_test (p, G_FILE_TEST_EXISTS);
+            g_free (p);
+        }
+        if (!found)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 static gboolean
 show_setup_timeout (gpointer data)
 {
+    static gboolean offered = FALSE;      /* once per run, not for every window */
     GtkWidget *w = data;
 
     /* the one-time setup opens as a tab; the tour follows once it is done or skipped */
-    if (gtk_widget_get_mapped (w) && !g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SETUP_DONE)) {
+    if (!offered && gtk_widget_get_mapped (w) && (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SETUP_DONE) ||
+        (devices_backends_missing () && !g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_DEVICES_HINT_DISMISSED)))) {
+        offered = TRUE;
         nemo_open_tool_tab (w, "setup", NULL);
     }
     g_object_unref (w);
@@ -1631,7 +1662,8 @@ static void
 nemo_window_realize (GtkWidget *widget)
 {
     if (!NEMO_IS_DESKTOP_WINDOW (widget) &&
-        !g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SETUP_DONE)) {
+        (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SETUP_DONE) ||
+         (devices_backends_missing () && !g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_DEVICES_HINT_DISMISSED)))) {
         g_timeout_add (900, show_setup_timeout, g_object_ref (widget));
     } else if (!NEMO_IS_DESKTOP_WINDOW (widget) &&
         !g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_WALKTHROUGH_DONE)) {

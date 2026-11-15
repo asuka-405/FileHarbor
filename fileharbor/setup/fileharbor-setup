@@ -355,8 +355,51 @@ class Setup:
     ]
 
     def missing_backends(self):
+        if os.path.exists("/.flatpak-info"):               # inside Flatpak the host's gvfs does the work
+            return []
         dirs = [os.path.join(d, "gvfs") for d in (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":") if d]
         return [(what, pkg) for what, rel, pkg in self.GVFS_BACKENDS if not any(os.path.exists(os.path.join(d, rel)) for d in dirs)]
+
+    @staticmethod
+    def install_command(packages):
+        """The package manager command that installs `packages` (gvfs-* names), or None."""
+        if shutil.which("pacman"):
+            return ["pacman", "-S", "--needed", "--noconfirm"] + packages
+        if shutil.which("apt-get"):
+            return ["apt-get", "install", "-y", "gvfs-backends"]
+        if shutil.which("dnf"):
+            return ["dnf", "install", "-y"] + packages
+        if shutil.which("zypper"):
+            return ["zypper", "--non-interactive", "install", "gvfs-backends"]
+        return None
+
+    def install_devices(self):
+        """Installs the missing gvfs backends. Needs root: as a normal user it asks the system for the password
+        (polkit, through pkexec); after that the package manager runs by itself."""
+        missing = self.missing_backends()
+        if not missing:
+            print("All gvfs backends are already installed.")
+            return 0
+        cmd = self.install_command([p for _, p in missing])
+        if cmd is None:
+            print("No supported package manager found. Install the gvfs packages for: %s" % ", ".join(w for w, _ in missing))
+            return 1
+        if os.geteuid() != 0:
+            if shutil.which("pkexec"):
+                print("The system asks for your password once; the installation then finishes by itself.")
+                cmd = ["pkexec"] + cmd
+            else:
+                print("Run as root:  sudo %s" % " ".join(cmd))
+                return 1
+        if self.dry:
+            print("[dry-run] " + " ".join(cmd))
+            return 0
+        rc = subprocess.call(cmd)
+        if rc != 0:
+            print("\nThe installation did not finish (exit code %d). If the package databases are out of date, run a full update first (for example sudo pacman -Syu)." % rc)
+            return rc
+        print("\nInstalled. Restart FileHarbor and reconnect your phone or camera.")
+        return 0
 
     def check_devices(self):
         self.step("Phones, cameras and network shares")
@@ -376,6 +419,8 @@ class Setup:
         else:
             self.say("   install the gvfs packages that provide these backends")
         self.state["missing_backends"] = [p for _, p in missing]
+        if self.interactive and not self.dry and self.ask_bool("Install them now? (the system asks for your password once)", True):
+            self.install_devices()
 
     # ------------------------------------------------------------------ 3. desktop integration
     def mimeapps_path(self):
@@ -607,10 +652,14 @@ def main():
     ap.add_argument("--mode", dest="fileharbor_theme_mode", choices=["system", "light", "dark"])
     ap.add_argument("--roundness", dest="fileharbor_roundness", choices=["theme", "square", "soft", "rounded", "round"])
     ap.add_argument("--spaciousness", dest="fileharbor_spaciousness", choices=["compact", "default", "comfortable", "spacious"])
+    ap.add_argument("--install-devices", action="store_true",
+                    help="install the gvfs backends for phones, cameras and shares (asks the system for your password)")
     ap.add_argument("--set", action="append", metavar="KEY=VALUE", help="set one preference (repeatable), for example --set show-hidden-files=true")
     ap.add_argument("--developer", dest="developer_mode", action="store_const", const="true")
     args = ap.parse_args()
     s = Setup(args)
+    if args.install_devices:
+        return s.install_devices()
     if args.status:
         return s.status()
     if args.undo:
