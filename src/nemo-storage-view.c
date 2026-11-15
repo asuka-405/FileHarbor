@@ -46,6 +46,7 @@ enum {
 struct NemoStorageViewDetails {
 	GDBusProxy *proxy;
 	GCancellable *cancellable;
+	guint start_tries;        /* attempts to reach (or start) the Storage Sense daemon */
 	guint refresh_id;
 	guint poll_id;
 	gboolean scanning;
@@ -1882,28 +1883,77 @@ proxy_signal_cb (GDBusProxy *proxy, const char *sender, const char *signal,
 		self->details->refresh_id = g_timeout_add (500, refresh_timeout, self);
 }
 
+static void connect_proxy (NemoStorageView *self);
+
+/* The session bus can only start the daemon from a D-Bus service file it can see. A copy of FileHarbor run from a
+ * checkout, or installed under another prefix, has none, so start the daemon that sits next to this program. */
+static void
+start_daemon_directly (void)
+{
+	char *exe = g_file_read_link ("/proc/self/exe", NULL);
+	char *dir = exe != NULL ? g_path_get_dirname (exe) : NULL;
+	char *daemon = dir != NULL ? g_build_filename (dir, "fileharbor-storage-daemon", NULL) : NULL;
+	char *argv[] = { daemon != NULL && g_file_test (daemon, G_FILE_TEST_IS_EXECUTABLE) ? daemon : (char *) "fileharbor-storage-daemon", NULL };
+
+	g_spawn_async (NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+		       NULL, NULL, NULL, NULL);
+	g_free (daemon);
+	g_free (dir);
+	g_free (exe);
+}
+
+static gboolean
+retry_connect (gpointer data)
+{
+	NemoStorageView *self = data;
+
+	connect_proxy (self);
+	g_object_unref (self);
+	return G_SOURCE_REMOVE;
+}
+
 static void
 proxy_ready (GObject *src, GAsyncResult *res, gpointer data)
 {
 	GError *error = NULL;
 	GDBusProxy *proxy = g_dbus_proxy_new_for_bus_finish (res, &error);
-	NemoStorageView *self;
+	NemoStorageView *self = data;
 
+	if (proxy != NULL && g_dbus_proxy_get_name_owner (proxy) == NULL) {
+		/* a proxy can exist for a name nobody owns; treat that as "not running yet" */
+		g_object_unref (proxy);
+		proxy = NULL;
+		error = g_error_new_literal (G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN, "no owner");
+	}
 	if (proxy == NULL) {
 		if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
-			self = data;
-			gtk_label_set_text (GTK_LABEL (self->details->subtitle),
-					    _("The Storage Sense service is not available."));
+			if (self->details->start_tries < 8) {
+				if (self->details->start_tries == 0)
+					start_daemon_directly ();
+				self->details->start_tries++;
+				gtk_label_set_text (GTK_LABEL (self->details->subtitle), _("Starting the Storage Sense service…"));
+				g_timeout_add (700, retry_connect, g_object_ref (self));
+			} else {
+				gtk_label_set_text (GTK_LABEL (self->details->subtitle),
+						    _("The Storage Sense service is not available. Check that fileharbor-storage-daemon is installed."));
+			}
 		}
 		g_clear_error (&error);
 		return;
 	}
-	self = data;
 	self->details->proxy = proxy;
 	g_signal_connect (proxy, "g-signal", G_CALLBACK (proxy_signal_cb), self);
 	nemo_storage_view_refresh_all (self);
 	call_json (self, "GetStatus", NULL, on_status, NULL);
 	self->details->poll_id = g_timeout_add_seconds (2, poll_status, self);
+}
+
+static void
+connect_proxy (NemoStorageView *self)
+{
+	g_dbus_proxy_new_for_bus (G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, NULL,
+				  SS_BUS_NAME, SS_OBJ_PATH, SS_IFACE,
+				  self->details->cancellable, proxy_ready, self);
 }
 
 static void
@@ -1968,9 +2018,7 @@ nemo_storage_view_build (NemoStorageView *self)
 	gtk_widget_show_all (GTK_WIDGET (self));
 
 	d->cancellable = g_cancellable_new ();
-	g_dbus_proxy_new_for_bus (G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, NULL,
-				  SS_BUS_NAME, SS_OBJ_PATH, SS_IFACE,
-				  d->cancellable, proxy_ready, self);
+	connect_proxy (self);
 }
 
 /* ------------------------------------------------------------------ */

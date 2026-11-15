@@ -12,17 +12,27 @@ DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
 APPS="$DATA/applications"
 ICONS="$DATA/icons/hicolor"
 BUS="$DATA/dbus-1/services"
+# Files an older version of this script wrote under Nemo's names (before the rename to in.archdev.FileHarbor).
+# Only files that start this checkout's scripts/run.sh are removed, never a real Nemo launcher.
+remove_legacy() {
+    for f in "$APPS/nemo.desktop" "$BUS/nemo.service" "$BUS/nemo.FileManager1.service"; do
+        [ -f "$f" ] && grep -q "scripts/run.sh" "$f" && rm -f "$f"
+    done
+    rm -f "$ICONS"/*/apps/fileharbor.png
+}
 refresh() {
     update-desktop-database "$APPS" 2>/dev/null
     gtk-update-icon-cache -q -t "$ICONS" 2>/dev/null
 }
 if [ "$1" = "--remove" ]; then
-    rm -f "$APPS/in.archdev.FileHarbor.desktop" "$ICONS"/*/apps/in.archdev.FileHarbor.png "$BUS/in.archdev.FileHarbor.service" "$BUS/in.archdev.FileHarbor.FileManager1.service" "$APPS/nemo.desktop" "$BUS/nemo.service" "$BUS/nemo.FileManager1.service"
+    remove_legacy
+    rm -f "$APPS/in.archdev.FileHarbor.desktop" "$ICONS"/*/apps/in.archdev.FileHarbor.png "$BUS/in.archdev.FileHarbor.service" "$BUS/in.archdev.FileHarbor.FileManager1.service" "$BUS/in.archdev.FileHarbor.StorageSense.service" "$APPS/nemo.desktop" "$BUS/nemo.service" "$BUS/nemo.FileManager1.service"
     refresh
     echo "removed (if FileHarbor was your default for folders, pick another in the system settings)"
     exit 0
 fi
 [ -f "$ROOT/install/share/applications/in.archdev.FileHarbor.desktop" ] || { echo "Run scripts/build.sh first." >&2; exit 1; }
+remove_legacy
 mkdir -p "$APPS" "$BUS"
 for s in 16 24 32 48 64 128 256 512; do
     mkdir -p "$ICONS/${s}x${s}/apps"
@@ -34,6 +44,8 @@ sed "s|^Exec=fileharbor |Exec=$RUN |" "$ROOT/install/share/applications/in.archd
 # D-Bus activation: other programs ask for org.freedesktop.FileManager1 (Show in folder) and in.archdev.FileHarbor
 printf '[D-BUS Service]\nName=org.freedesktop.FileManager1\nExec=%s --no-default-window\n' "$RUN" > "$BUS/in.archdev.FileHarbor.FileManager1.service"
 printf '[D-BUS Service]\nName=in.archdev.FileHarbor\nExec=%s --no-default-window\n' "$RUN" > "$BUS/in.archdev.FileHarbor.service"
+# the Storage page's background service (the page also starts it by itself when the bus does not know it)
+printf '[D-BUS Service]\nName=in.archdev.FileHarbor.StorageSense\nExec=%s/install/bin/fileharbor-storage-daemon\n' "$ROOT" > "$BUS/in.archdev.FileHarbor.StorageSense.service"
 refresh
 if [ "$1" = "--default" ]; then
     xdg-mime default in.archdev.FileHarbor.desktop inode/directory application/x-gnome-saved-search
