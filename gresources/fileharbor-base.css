@@ -74,8 +74,8 @@
  * Every control gets its colours from the palette, so a light palette over a
  * dark GTK theme (or the other way round) stays readable. */
 .nemo-window:not(.nemo-desktop-window) button {
-    min-height: 32px;
-    padding: 0 12px;
+    min-height: %CTRL%px;
+    padding: 0 %S3%px;
     border-radius: %RADIUS%px;
     background-image: none;
     background-color: @ns_surface_alt;
@@ -142,7 +142,7 @@
     background-color: @ns_hover;
 }
 .nemo-window:not(.nemo-desktop-window) button.image-button {
-    min-width: 32px;
+    min-width: %CTRL%px;
     padding: 0;
 }
 
@@ -159,7 +159,7 @@
 }
 .nemo-window:not(.nemo-desktop-window) entry,
 .nemo-window:not(.nemo-desktop-window) spinbutton {
-    min-height: 32px;
+    min-height: %CTRL%px;
     border: none;
     border-bottom: 2px solid @ns_border_strong;
     padding: 0 10px;
@@ -193,7 +193,7 @@
     color: @ns_text_faint;
 }
 .nemo-window:not(.nemo-desktop-window) combobox button.combo {
-    padding: 0 8px;
+    padding: 0 %S2%px;
 }
 .nemo-window:not(.nemo-desktop-window) check,
 .nemo-window:not(.nemo-desktop-window) radio {
@@ -268,8 +268,8 @@
     color: @ns_text_dim;
     background-color: transparent;
     border-radius: %RADIUS%px;
-    min-height: 32px;
-    padding: 0 12px;
+    min-height: %CTRL%px;
+    padding: 0 %S3%px;
 }
 .nemo-window:not(.nemo-desktop-window) notebook > header > tabs > tab:hover {
     color: @ns_text;
@@ -298,7 +298,7 @@
     color: @ns_text;
 }
 .nemo-window:not(.nemo-desktop-window) list row {
-    min-height: 32px;
+    min-height: %CTRL%px;
     transition: background-color 120ms ease-out;
 }
 .nemo-window:not(.nemo-desktop-window) list row:hover {
@@ -336,8 +336,8 @@
 
 /* tool pages (editor, images, media) put a header bar at the top of their tab */
 .nemo-window:not(.nemo-desktop-window) headerbar {
-    min-height: 44px;
-    padding: 4px 8px;
+    min-height: %BAR2%px;
+    padding: %S1%px %S2%px;
     background-image: none;
     background-color: transparent;
     border: none;
@@ -369,7 +369,7 @@ popover.background > stack {
     box-shadow: 0 6px 18px alpha(black, 0.32);
 }
 menu {
-    padding: 4px 0;
+    padding: %S1%px 0;
 }
 menu menuitem,
 popover.background modelbutton,
@@ -380,8 +380,8 @@ popover.background row {
     background-color: transparent;
     border-radius: %RADIUS%px;
     border-color: transparent;
-    min-height: 32px;
-    padding: 0 12px;
+    min-height: %CTRL%px;
+    padding: 0 %S3%px;
 }
 menu menuitem label,
 popover.background modelbutton label {
@@ -402,7 +402,7 @@ popover.background modelbutton:disabled {
 menu separator,
 popover.background separator {
     background-color: @ns_border;
-    margin: 4px 0;
+    margin: %S1%px 0;
 }
 tooltip,
 tooltip.background {
@@ -424,8 +424,8 @@ tooltip label {
     border: none;
     border-radius: 0;
     box-shadow: none;
-    min-height: 40px;
-    padding: 0 8px;
+    min-height: %BAR%px;
+    padding: 0 %S2%px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-titlebar .title {
     color: @ns_text_dim;
@@ -439,8 +439,8 @@ tooltip label {
     box-shadow: none;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-titlebar menubar > menuitem {
-    min-height: 28px;
-    padding: 0 12px;
+    min-height: %ROW%px;
+    padding: 0 %S3%px;
     border-radius: %RADIUS%px;
     color: @ns_text_dim;
 }
@@ -451,8 +451,8 @@ tooltip label {
 }
 /* window buttons borrow the status colours, so they follow the theme */
 .nemo-window:not(.nemo-desktop-window) .fileharbor-wc {
-    min-width: 32px;
-    min-height: 32px;
+    min-width: %CTRL%px;
+    min-height: %CTRL%px;
     padding: 0;
     margin: 0 2px;
     background-image: none;
@@ -472,14 +472,14 @@ tooltip label {
 .nemo-window:not(.nemo-desktop-window) .fileharbor-tabstrip {
     background-color: @ns_window;
     border: none;
-    padding: 0 8px;
+    padding: 0 %S2%px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-tab {
     color: @ns_text_dim;
     min-width: 144px;
-    min-height: 32px;
-    margin-right: 4px;
-    padding: 0 8px;
+    min-height: %CTRL%px;
+    margin-right: %S1%px;
+    padding: 0 %S2%px;
     background-color: transparent;
     border-radius: %RADIUS%px;
     transition: background-color 120ms ease-out;
@@ -514,7 +514,7 @@ tooltip label {
 /* ---- sidebar ---- */
 .nemo-window:not(.nemo-desktop-window) .sidebar {
     margin: %GAP%px 0 %GAP%px %GAP%px;
-    padding: 8px 0;
+    padding: %S2%px 0;
     border-radius: %RADIUS%px;
     background-color: @ns_surface;
     border: %BORDER%px solid @ns_border;
@@ -557,7 +557,7 @@ tooltip label {
     color: @ns_text;
 }
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane iconview {
-    padding: 12px;
+    padding: %S3%px;
 }
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane treeview.view:hover,
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane iconview:hover {
@@ -579,7 +579,7 @@ tooltip label {
     border-radius: %RADIUS%px;
 }
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane treeview.view header button {
-    min-height: 32px;
+    min-height: %CTRL%px;
     background-image: none;
     background-color: @ns_surface_alt;
     color: @ns_text_dim;
@@ -587,7 +587,7 @@ tooltip label {
     border: none;
     border-bottom: 1px solid @ns_border;
     box-shadow: none;
-    padding: 0 8px;
+    padding: 0 %S2%px;
     font-weight: 600;
 }
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane treeview.view header button:hover {
@@ -598,7 +598,7 @@ tooltip label {
 /* toolbar: same tone as the file area, so it reads as one surface */
 .nemo-window:not(.nemo-desktop-window) .primary-toolbar,
 .nemo-window:not(.nemo-desktop-window) toolbar {
-    padding: 8px;
+    padding: %S2%px;
     border-radius: 0;
     border: none;
     background-image: none;
@@ -612,9 +612,9 @@ tooltip label {
     background-image: none;
     background-color: transparent;
     color: @ns_text_dim;
-    min-height: 32px;
-    min-width: 32px;
-    padding: 0 4px;
+    min-height: %CTRL%px;
+    min-width: %CTRL%px;
+    padding: 0 %S1%px;
 }
 .nemo-window:not(.nemo-desktop-window) .primary-toolbar button:hover,
 .nemo-window:not(.nemo-desktop-window) toolbar button:hover {
@@ -632,9 +632,9 @@ tooltip label {
 .nemo-window:not(.nemo-desktop-window) .path-bar button,
 .nemo-window:not(.nemo-desktop-window) .path-bar button.slider-button {
     border-radius: %RADIUS%px;
-    padding: 0 12px;
+    padding: 0 %S3%px;
     margin: 0 2px;
-    min-height: 32px;
+    min-height: %CTRL%px;
     background-image: none;
     background-color: transparent;
     border-color: transparent;
@@ -662,11 +662,11 @@ tooltip label {
     border-radius: %RADIUS%px;
     background-color: @ns_surface;
     border: %BORDER%px solid @ns_border;
-    padding: 4px;
+    padding: %S1%px;
 }
 
 .nemo-window:not(.nemo-desktop-window) .fileharbor-terminal vte-terminal {
-    padding: 8px 12px;
+    padding: %S2%px %S3%px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-terminal searchbar {
     background-color: @ns_surface_alt;
@@ -678,7 +678,7 @@ tooltip label {
 .nemo-window:not(.nemo-desktop-window) statusbar,
 .nemo-window:not(.nemo-desktop-window) .nemo-status-bar {
     margin: 0 %GAP%px %GAP%px %GAP%px;
-    padding: 4px 8px;
+    padding: %S1%px %S2%px;
     border-radius: %RADIUS%px;
     background-color: transparent;
     border: none;
@@ -743,7 +743,7 @@ tooltip label {
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav flowbox {
     background-color: transparent;
-    padding: 4px 8px;
+    padding: %S1%px %S2%px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav flowboxchild {
     padding: 0;
@@ -756,7 +756,7 @@ tooltip label {
     border-radius: %RADIUS%px;
     box-shadow: none;
     color: @ns_text_dim;
-    padding: 0 8px;
+    padding: 0 %S2%px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-place:hover {
     background-color: @ns_hover;
@@ -773,7 +773,7 @@ tooltip label {
     color: @ns_text;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav treeview.view header button {
-    min-height: 32px;
+    min-height: %CTRL%px;
     background-image: none;
     background-color: transparent;
     color: @ns_text_dim;
@@ -782,7 +782,7 @@ tooltip label {
     border-radius: 0;
     box-shadow: none;
     font-weight: 600;
-    padding: 0 8px;
+    padding: 0 %S2%px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav treeview.view:hover {
     background-color: @ns_hover;

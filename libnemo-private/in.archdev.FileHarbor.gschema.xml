@@ -189,6 +189,16 @@
       <summary>Light or dark</summary>
       <description>"system" follows the desktop's light/dark setting, "dark" and "light" force one. Applies to every theme that has both variants.</description>
     </key>
+    <key name="fileharbor-roundness" type="s">
+      <default>'theme'</default>
+      <summary>Corner roundness</summary>
+      <description>"theme" uses the corner radius of the active theme (square in most themes). "square", "soft", "rounded" and "round" override it for every theme (0, 4, 8 and 12 px).</description>
+    </key>
+    <key name="fileharbor-spaciousness" type="s">
+      <default>'default'</default>
+      <summary>Spaciousness</summary>
+      <description>How much room controls, rows and panels get: "compact", "default", "comfortable" or "spacious". Changes control heights, padding and the gaps between panels.</description>
+    </key>
     <key name="fileharbor-theme-desktop-accent" type="b">
       <default>false</default>
       <summary>Use the desktop's accent colour</summary>

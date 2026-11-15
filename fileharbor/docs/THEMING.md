@@ -102,11 +102,20 @@ Colours are written `#rrggbb`.
 - `hover`: the highlight under the pointer.
 - `success`, `warning`, `error`, `info`: status colours.
 
+# Roundness and spaciousness
+
+Two settings in **Edit > Appearance** apply on top of every theme. Their defaults leave the look as the theme made it.
+
+- **Corner roundness**: *As the theme* (default), *Square* (0 px), *Soft* (4 px), *Rounded* (8 px), *Very round* (12 px).
+- **Spaciousness**: *Compact*, *Default*, *Comfortable*, *Spacious*. Changes control height (28 / 32 / 36 / 40 px), row height, the padding steps and the gap between panels (the theme's `gap` minus 2, plus 2 or plus 4).
+
+From a shell: `gsettings set in.archdev.FileHarbor.preferences fileharbor-roundness rounded`, and the same with `fileharbor-spaciousness`. They do not apply with **System GTK theme**.
+
 # [Metrics]
 
 Whole numbers, in pixels.
 
-- `radius`: corner rounding of panels and buttons, 0 to 32. Default `0`.
+- `radius`: corner rounding of panels and buttons, 0 to 32. Default `0`. The roundness setting above overrides it.
 - `gap`: space between the sidebar, file area and terminal, 0 to 32. Default `8`.
 - `border`: outline thickness around panels, 0 to 6. Default `0`: panels are separated by tone, not lines.
 

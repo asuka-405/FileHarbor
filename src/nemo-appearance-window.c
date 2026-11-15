@@ -140,6 +140,24 @@ on_mode_changed (GtkComboBox *c, gpointer data)
 }
 
 static void
+on_roundness_changed (GtkComboBox *c, gpointer data)
+{
+	const char *id = gtk_combo_box_get_active_id (c);
+
+	if (ui->loading || id == NULL) return;
+	nemo_theme_manager_set_roundness (id);
+}
+
+static void
+on_spaciousness_changed (GtkComboBox *c, gpointer data)
+{
+	const char *id = gtk_combo_box_get_active_id (c);
+
+	if (ui->loading || id == NULL) return;
+	nemo_theme_manager_set_spaciousness (id);
+}
+
+static void
 on_desktop_accent_toggled (GObject *sw, GParamSpec *p, gpointer data)
 {
 	if (ui->loading) return;
@@ -480,6 +498,37 @@ build_themes_tab (void)
 		row++;
 		gtk_grid_attach (GTK_GRID (grid), al, 0, row, 1, 1);
 		gtk_grid_attach (GTK_GRID (grid), as, 1, row, 1, 1);
+		row++;
+	}
+	/* corner roundness and spaciousness: the user's own choice on top of every theme */
+	{
+		GtkWidget *rl = gtk_label_new (_("Corner roundness"));
+		GtkWidget *rc = gtk_combo_box_text_new ();
+		GtkWidget *sl = gtk_label_new (_("Spaciousness"));
+		GtkWidget *sc = gtk_combo_box_text_new ();
+
+		gtk_widget_set_halign (rl, GTK_ALIGN_START);
+		gtk_widget_set_halign (sl, GTK_ALIGN_START);
+		gtk_widget_set_tooltip_text (rc, _("Overrides the corner radius of the theme. \"As the theme\" is the default."));
+		gtk_widget_set_tooltip_text (sc, _("Control heights, padding and the gaps between panels."));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (rc), "theme", _("As the theme (default)"));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (rc), "square", _("Square"));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (rc), "soft", _("Soft"));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (rc), "rounded", _("Rounded"));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (rc), "round", _("Very round"));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (sc), "compact", _("Compact"));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (sc), "default", _("Default"));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (sc), "comfortable", _("Comfortable"));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (sc), "spacious", _("Spacious"));
+		gtk_combo_box_set_active_id (GTK_COMBO_BOX (rc), nemo_theme_manager_get_roundness ());
+		gtk_combo_box_set_active_id (GTK_COMBO_BOX (sc), nemo_theme_manager_get_spaciousness ());
+		g_signal_connect (rc, "changed", G_CALLBACK (on_roundness_changed), NULL);
+		g_signal_connect (sc, "changed", G_CALLBACK (on_spaciousness_changed), NULL);
+		gtk_grid_attach (GTK_GRID (grid), rl, 0, row, 1, 1);
+		gtk_grid_attach (GTK_GRID (grid), rc, 1, row, 1, 1);
+		row++;
+		gtk_grid_attach (GTK_GRID (grid), sl, 0, row, 1, 1);
+		gtk_grid_attach (GTK_GRID (grid), sc, 1, row, 1, 1);
 		row++;
 	}
 	{

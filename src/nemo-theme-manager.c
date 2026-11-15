@@ -335,6 +335,53 @@ nemo_theme_manager_set_desktop_accent (gboolean use)
 	apply_saved_theme ();
 }
 
+static const char *
+choice_setting (const char *key, const char *const *allowed, const char *fallback)
+{
+	static GHashTable *cache = NULL;
+	char *v = g_settings_get_string (nemo_preferences, key);
+	int i;
+
+	if (cache == NULL)
+		cache = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, g_free);
+	for (i = 0; allowed[i] != NULL; i++) {
+		if (g_strcmp0 (v, allowed[i]) == 0) {
+			g_hash_table_insert (cache, (gpointer) key, v);
+			return v;
+		}
+	}
+	g_free (v);
+	g_hash_table_insert (cache, (gpointer) key, g_strdup (fallback));
+	return g_hash_table_lookup (cache, key);
+}
+
+static const char *const roundness_values[] = { "theme", "square", "soft", "rounded", "round", NULL };
+static const char *const spaciousness_values[] = { "compact", "default", "comfortable", "spacious", NULL };
+
+const char *
+nemo_theme_manager_get_roundness (void)
+{
+	return choice_setting (NEMO_PREFERENCES_FILEHARBOR_ROUNDNESS, roundness_values, "theme");
+}
+
+void
+nemo_theme_manager_set_roundness (const char *roundness)
+{
+	g_settings_set_string (nemo_preferences, NEMO_PREFERENCES_FILEHARBOR_ROUNDNESS, roundness);   /* the watcher in init applies it */
+}
+
+const char *
+nemo_theme_manager_get_spaciousness (void)
+{
+	return choice_setting (NEMO_PREFERENCES_FILEHARBOR_SPACIOUSNESS, spaciousness_values, "default");
+}
+
+void
+nemo_theme_manager_set_spaciousness (const char *spaciousness)
+{
+	g_settings_set_string (nemo_preferences, NEMO_PREFERENCES_FILEHARBOR_SPACIOUSNESS, spaciousness);
+}
+
 GKeyFile *
 nemo_theme_manager_resolve (GKeyFile *raw)
 {
@@ -476,10 +523,37 @@ build_css (GKeyFile *resolved, const char *extra_css_path)
 	}
 	body = g_strndup (g_bytes_get_data (tpl, NULL), g_bytes_get_size (tpl));
 	g_bytes_unref (tpl);
-	tmp = g_strdup_printf ("%d", g_key_file_get_integer (resolved, "Metrics", "radius", NULL));
-	body = replace_all (body, "%RADIUS%", tmp); g_free (tmp);
-	tmp = g_strdup_printf ("%d", g_key_file_get_integer (resolved, "Metrics", "gap", NULL));
-	body = replace_all (body, "%GAP%", tmp); g_free (tmp);
+	{
+		/* roundness and spaciousness are the user's own choice and apply on top of every theme */
+		const char *round = nemo_theme_manager_get_roundness ();
+		const char *space = nemo_theme_manager_get_spaciousness ();
+		int radius = g_key_file_get_integer (resolved, "Metrics", "radius", NULL);
+		int gap = g_key_file_get_integer (resolved, "Metrics", "gap", NULL);
+		/* control, row, bar, bar with header, then the 4/8/12 spacing steps and the panel gap change */
+		int ctrl = 32, row = 28, bar = 40, bar2 = 44, s1 = 4, s2 = 8, s3 = 12, dgap = 0;
+
+		if (g_strcmp0 (round, "square") == 0) radius = 0;
+		else if (g_strcmp0 (round, "soft") == 0) radius = 4;
+		else if (g_strcmp0 (round, "rounded") == 0) radius = 8;
+		else if (g_strcmp0 (round, "round") == 0) radius = 12;
+		if (g_strcmp0 (space, "compact") == 0) {
+			ctrl = 28; row = 24; bar = 36; bar2 = 40; s1 = 2; s2 = 6; s3 = 10; dgap = -2;
+		} else if (g_strcmp0 (space, "comfortable") == 0) {
+			ctrl = 36; row = 32; bar = 44; bar2 = 48; s1 = 6; s2 = 10; s3 = 14; dgap = 2;
+		} else if (g_strcmp0 (space, "spacious") == 0) {
+			ctrl = 40; row = 36; bar = 48; bar2 = 52; s1 = 8; s2 = 12; s3 = 18; dgap = 4;
+		}
+		gap = CLAMP (gap + dgap, 0, 32);
+		tmp = g_strdup_printf ("%d", radius); body = replace_all (body, "%RADIUS%", tmp); g_free (tmp);
+		tmp = g_strdup_printf ("%d", gap); body = replace_all (body, "%GAP%", tmp); g_free (tmp);
+		tmp = g_strdup_printf ("%d", ctrl); body = replace_all (body, "%CTRL%", tmp); g_free (tmp);
+		tmp = g_strdup_printf ("%d", row); body = replace_all (body, "%ROW%", tmp); g_free (tmp);
+		tmp = g_strdup_printf ("%d", bar); body = replace_all (body, "%BAR%", tmp); g_free (tmp);
+		tmp = g_strdup_printf ("%d", bar2); body = replace_all (body, "%BAR2%", tmp); g_free (tmp);
+		tmp = g_strdup_printf ("%d", s1); body = replace_all (body, "%S1%", tmp); g_free (tmp);
+		tmp = g_strdup_printf ("%d", s2); body = replace_all (body, "%S2%", tmp); g_free (tmp);
+		tmp = g_strdup_printf ("%d", s3); body = replace_all (body, "%S3%", tmp); g_free (tmp);
+	}
 	tmp = g_strdup_printf ("%d", g_key_file_get_integer (resolved, "Metrics", "border", NULL));
 	body = replace_all (body, "%BORDER%", tmp); g_free (tmp);
 	g_string_append (css, body);
@@ -560,6 +634,8 @@ dev_write_snapshot (const char *theme_id, GKeyFile *resolved)
 	g_string_append_printf (j, "  \"theme\": \"%s\",\n  \"mode\": \"%s\",\n  \"dark\": %s,\n",
 				theme_id != NULL ? theme_id : "", nemo_theme_manager_get_mode (),
 				g_key_file_get_boolean (resolved, "Theme", "Dark", NULL) ? "true" : "false");
+	g_string_append_printf (j, "  \"roundness\": \"%s\",\n  \"spaciousness\": \"%s\",\n",
+				nemo_theme_manager_get_roundness (), nemo_theme_manager_get_spaciousness ());
 	g_string_append_printf (j, "  \"desktop\": \"%s\",\n  \"desktop_prefers_dark\": %s,\n  \"desktop_accent\": %s%s%s,\n",
 				fh_desktop_id (), fh_desktop_prefers_dark () ? "true" : "false",
 				accent != NULL ? "\"" : "", accent != NULL ? accent : "null", accent != NULL ? "\"" : "");
@@ -731,6 +807,13 @@ desktop_changed (void)
 	g_key_file_free (kf);
 }
 
+static void
+shape_changed (GSettings *settings, const char *key, gpointer data)
+{
+	g_clear_pointer (&preview_kf, g_key_file_free);
+	apply_saved_theme ();
+}
+
 void
 nemo_theme_manager_init (void)
 {
@@ -738,4 +821,7 @@ nemo_theme_manager_init (void)
 		return;
 	apply_saved_theme ();
 	fh_desktop_watch (G_CALLBACK (desktop_changed));
+	/* also when changed from outside (fileharbor-setup, gsettings, the developer panel) */
+	g_signal_connect (nemo_preferences, "changed::" NEMO_PREFERENCES_FILEHARBOR_ROUNDNESS, G_CALLBACK (shape_changed), NULL);
+	g_signal_connect (nemo_preferences, "changed::" NEMO_PREFERENCES_FILEHARBOR_SPACIOUSNESS, G_CALLBACK (shape_changed), NULL);
 }

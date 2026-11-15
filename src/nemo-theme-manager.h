@@ -29,6 +29,10 @@ const char*nemo_theme_manager_get_mode      (void);                  /* "system"
 void       nemo_theme_manager_set_mode      (const char *mode);
 gboolean   nemo_theme_manager_get_desktop_accent (void);          /* use the desktop's accent colour (System theme) */
 void       nemo_theme_manager_set_desktop_accent (gboolean use);
+const char*nemo_theme_manager_get_roundness (void);                /* "theme", "square", "soft", "rounded" or "round" */
+void       nemo_theme_manager_set_roundness (const char *roundness);
+const char*nemo_theme_manager_get_spaciousness (void);            /* "compact", "default", "comfortable" or "spacious" */
+void       nemo_theme_manager_set_spaciousness (const char *spaciousness);
 GList     *nemo_theme_manager_list          (void);   /* of NemoThemeInfo* */
 void       nemo_theme_info_free             (NemoThemeInfo *info);
 const char*nemo_theme_manager_get_current   (void);
