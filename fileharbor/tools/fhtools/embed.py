@@ -78,6 +78,9 @@ def build(tool, files):
     from .hub import HubPage
     if tool in ("hub", ""):
         return HubPage()
+    if tool == "setup":
+        from . import setup_tool
+        return setup_tool.run()
     if tool == "fhdev":
         from . import devmode_tool
         return devmode_tool.run()

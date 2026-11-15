@@ -1,5 +1,9 @@
 # One-time setup
 
+FileHarbor opens its setup page by itself the first time it starts: a tab with the choices below. **Apply setup** applies them, **Not now** closes the tab (it comes back at the next start), **Don't show again** keeps the defaults. **Tools > FileHarbor setup** opens it again at any time. Ticking *Apply these as defaults for everyone on this computer* runs the system scope through `pkexec`, which asks for your password.
+
+The page runs `fileharbor-setup`, the same program you can run in a terminal, so both do the same thing and `--undo` takes either back.
+
 `fileharbor-setup` sets FileHarbor up in one go. It asks about each thing (Enter keeps the current value), applies the answers, and records what it did so it can be undone. From a checkout use `scripts/setup.sh` after `scripts/build.sh`.
 
 # Scope
@@ -32,6 +36,7 @@ Settings are copied from an earlier Nemo install automatically when FileHarbor f
 fileharbor-setup --dry-run                  show everything it would do, change nothing
 fileharbor-setup --yes                      no questions; keep current values
 fileharbor-setup --yes --storage always --theme ocean --mode dark --roundness rounded --spaciousness comfortable
+fileharbor-setup --set show-hidden-files=true   set any one preference (repeatable)
 fileharbor-setup --default-manager | --no-default-manager
 fileharbor-setup --force                    run again (it refuses by default once it has run)
 fileharbor-setup --status                   print what the last run did

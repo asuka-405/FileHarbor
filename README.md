@@ -123,7 +123,7 @@ Source tarballs, the Arch package and a Flatpak bundle are attached to the [rele
 
 ### One-time setup
 
-`fileharbor-setup` (from a checkout: `scripts/setup.sh`) walks through the settings (theme, roundness,
+The first start opens a setup page (Tools > FileHarbor setup opens it again). The same thing runs in a terminal as `fileharbor-setup` (from a checkout: `scripts/setup.sh`), which walks through the settings (theme, roundness,
 spaciousness, browsing, built-in tools), the Storage Sense service and the desktop integration, then applies
 them. Details in [`fileharbor/docs/SETUP.md`](fileharbor/docs/SETUP.md).
 

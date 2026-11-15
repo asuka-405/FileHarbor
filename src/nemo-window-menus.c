@@ -317,7 +317,7 @@ action_tool_callback (GtkAction *action,
 {
 	static const struct { const char *name; const char *tool; } map[] = {
 		{ "ToolDevtools", "devtools" }, { "ToolImage", "image" }, { "ToolMedia", "media" },
-		{ "ToolEditor", "editor" }, { "ToolFhDev", "fhdev" },
+		{ "ToolEditor", "editor" }, { "ToolFhDev", "fhdev" }, { "ToolFhSetup", "setup" },
 	};
 	NemoWindow *window = NEMO_WINDOW (user_data);
 	NemoWindowSlot *slot = nemo_window_get_active_slot (window);
@@ -1527,6 +1527,8 @@ static const GtkActionEntry main_entries[] = {
                                  N_("Code and text with syntax highlighting; Markdown and MDX preview"), G_CALLBACK (action_tool_callback) },
                                { "ToolFhDev", "utilities-terminal-symbolic", N_("_FileHarbor developer panel"), "<control><alt>D",
                                  N_("Logs, theme and desktop detection, settings and services (developer mode)"), G_CALLBACK (action_tool_callback) },
+                               { "ToolFhSetup", "preferences-system-symbolic", N_("FileHarbor _setup…"), NULL,
+                                 N_("Choose the look, behaviour, background service and desktop integration"), G_CALLBACK (action_tool_callback) },
                                { "ManageExtensions", "application-x-addon-symbolic", N_("_Extensions…"), NULL,
                                  N_("Turn extensions on or off, and learn how to make one"), G_CALLBACK (action_manage_extensions_callback) },
   /* name, stock id */         { "Close", "xsi-window-close-symbolic",

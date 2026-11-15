@@ -144,6 +144,11 @@
       <summary>The welcome tour has been shown</summary>
       <description>Set when the first-run tour has been finished, skipped or closed. Reset it to see the tour again, or use Help > Welcome tour.</description>
     </key>
+    <key name="setup-done" type="b">
+      <default>false</default>
+      <summary>The one-time setup has been done or skipped</summary>
+      <description>Set when the first-run setup page has been applied, skipped or dismissed for good. Reset it to see the page again at the next start, or use Tools > FileHarbor setup.</description>
+    </key>
     <key name="terminal-panel-visible" type="b">
       <default>true</default>
       <summary>Show the terminal panel</summary>

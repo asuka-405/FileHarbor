@@ -111,6 +111,7 @@ typedef enum
 #define NEMO_PREFERENCES_TEXT_OPEN_IN_EDITOR		"text-open-in-editor"  /* FileHarbor */
 #define NEMO_PREFERENCES_PREVIEW_PANE_PER_FOLDER		"preview-pane-per-folder"  /* FileHarbor */
 #define NEMO_PREFERENCES_EXTENSIONS_DISABLED		"extensions-disabled"  /* FileHarbor */
+#define NEMO_PREFERENCES_SETUP_DONE				"setup-done"  /* FileHarbor */
 #define NEMO_PREFERENCES_WALKTHROUGH_DONE			"walkthrough-done"  /* FileHarbor */
 #define NEMO_PREFERENCES_TERMINAL_PANEL_VISIBLE		"terminal-panel-visible"  /* FileHarbor */
 #define NEMO_PREFERENCES_TERMINAL_FONT				"terminal-font"  /* FileHarbor */

@@ -822,6 +822,9 @@ nemo_theme_manager_init (void)
 	apply_saved_theme ();
 	fh_desktop_watch (G_CALLBACK (desktop_changed));
 	/* also when changed from outside (fileharbor-setup, gsettings, the developer panel) */
+	g_signal_connect (nemo_preferences, "changed::" NEMO_PREFERENCES_FILEHARBOR_THEME, G_CALLBACK (shape_changed), NULL);
+	g_signal_connect (nemo_preferences, "changed::" NEMO_PREFERENCES_FILEHARBOR_THEME_MODE, G_CALLBACK (shape_changed), NULL);
+	g_signal_connect (nemo_preferences, "changed::" NEMO_PREFERENCES_FILEHARBOR_THEME_DESKTOP_ACCENT, G_CALLBACK (shape_changed), NULL);
 	g_signal_connect (nemo_preferences, "changed::" NEMO_PREFERENCES_FILEHARBOR_ROUNDNESS, G_CALLBACK (shape_changed), NULL);
 	g_signal_connect (nemo_preferences, "changed::" NEMO_PREFERENCES_FILEHARBOR_SPACIOUSNESS, G_CALLBACK (shape_changed), NULL);
 }

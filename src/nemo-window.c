@@ -36,6 +36,7 @@
 #include "nemo-tab-strip.h"  /* FileHarbor */
 #include "nemo-column-nav.h"  /* FileHarbor */
 #include "nemo-walkthrough.h"  /* FileHarbor */
+#include "nemo-tool-view.h"  /* FileHarbor */
 #include "nemo-application.h"
 #include "nemo-bookmarks-window.h"
 #include "nemo-desktop-window.h"
@@ -1602,6 +1603,19 @@ open_default_terminal_idle (gpointer data)
 }
 
 static gboolean
+show_setup_timeout (gpointer data)
+{
+    GtkWidget *w = data;
+
+    /* the one-time setup opens as a tab; the tour follows once it is done or skipped */
+    if (gtk_widget_get_mapped (w) && !g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SETUP_DONE)) {
+        nemo_open_tool_tab (w, "setup", NULL);
+    }
+    g_object_unref (w);
+    return G_SOURCE_REMOVE;
+}
+
+static gboolean
 show_walkthrough_timeout (gpointer data)
 {
     GtkWidget *w = data;
@@ -1617,6 +1631,9 @@ static void
 nemo_window_realize (GtkWidget *widget)
 {
     if (!NEMO_IS_DESKTOP_WINDOW (widget) &&
+        !g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SETUP_DONE)) {
+        g_timeout_add (900, show_setup_timeout, g_object_ref (widget));
+    } else if (!NEMO_IS_DESKTOP_WINDOW (widget) &&
         !g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_WALKTHROUGH_DONE)) {
         g_timeout_add (900, show_walkthrough_timeout, g_object_ref (widget));
     }

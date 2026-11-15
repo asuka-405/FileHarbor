@@ -78,6 +78,13 @@ class Setup:
         self.state = {"version": STATE_VERSION, "scope": "system" if self.system else "user", "prefix": PREFIX,
                       "time": time.strftime("%Y-%m-%d %H:%M:%S"), "files": [], "dirs": [], "keys": {}, "mime": {},
                       "units": [], "launcher": False, "dconf": None, "storage": None}
+        self.overrides = {}
+        for item in args.set or []:
+            k, _, v = item.partition("=")
+            self.overrides[k.strip()] = v.strip()
+        for k in ("fileharbor_theme", "fileharbor_theme_mode", "fileharbor_roundness", "fileharbor_spaciousness", "developer_mode"):
+            if getattr(args, k, None) is not None:
+                self.overrides[k.replace("_", "-")] = getattr(args, k)
         self.env = dict(os.environ)
         schemas = os.path.join(PREFIX, "share", "glib-2.0", "schemas")
         if os.path.isfile(os.path.join(schemas, "gschemas.compiled")) and PREFIX not in STANDARD_PREFIXES:
@@ -239,7 +246,7 @@ class Setup:
                 cur = chosen[key][1] if key in chosen else self.current(key)
                 if key == "fileharbor-theme":
                     choices = self.theme_choices()
-                override = getattr(self.a, key.replace("-", "_"), None)
+                override = self.overrides.get(key)
                 if override is not None:
                     new = override
                 elif kind == "bool":
@@ -420,6 +427,8 @@ class Setup:
         self.setup_storage()
         self.setup_integration()
         self.save_state()
+        if not self.system:
+            self.run(["gsettings", "set", "in.archdev.FileHarbor.preferences", "setup-done", "true"], quiet=True)
         print("\nDone%s. Log out and in again (or restart your panel) so the launcher and the folder default are picked up."
               % (" (nothing was changed)" if self.dry else ""))
         if not self.dry:
@@ -516,6 +525,7 @@ def main():
     ap.add_argument("--mode", dest="fileharbor_theme_mode", choices=["system", "light", "dark"])
     ap.add_argument("--roundness", dest="fileharbor_roundness", choices=["theme", "square", "soft", "rounded", "round"])
     ap.add_argument("--spaciousness", dest="fileharbor_spaciousness", choices=["compact", "default", "comfortable", "spacious"])
+    ap.add_argument("--set", action="append", metavar="KEY=VALUE", help="set one preference (repeatable), for example --set show-hidden-files=true")
     ap.add_argument("--developer", dest="developer_mode", action="store_const", const="true")
     args = ap.parse_args()
     s = Setup(args)
