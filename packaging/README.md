@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | Arch Linux / AUR `fileharbor` | `aur/PKGBUILD` | Built from source in a clean Arch container, tests pass |
 | Arch Linux / AUR `fileharbor-bin` | `aur-bin/PKGBUILD` | Installs the package CI builds; built locally from it |
-| Flatpak `in.archdev.FileHarbor` | `flatpak/in.archdev.FileHarbor.yml`, `.metainfo.xml` | Built and smoke-tested in the Flathub container (installs, exports its launcher and icon, metainfo validates) |
+| Flatpak `in.archdev.FileHarbor` | `flatpak/in.archdev.FileHarbor.yml`, `.metainfo.xml` | Direct bundle on each GitHub release; built and smoke-tested in a Docker container (GNOME 50) |
 | Debian files | `debian/` | Inherited from Nemo, unmaintained |
 
 FileHarbor installs the `nemo` binary, libraries and D-Bus names, so on Arch it **replaces** the `nemo`
@@ -36,12 +36,10 @@ with `AUR_BASE_URL`). By hand:
     flatpak-builder --user --install --force-clean build-flatpak packaging/flatpak/in.archdev.FileHarbor.yml
     flatpak run in.archdev.FileHarbor
 
-The manifest has not been built. Things to check first:
-
-- the GNOME runtime version (46 is assumed) ships WebKitGTK 4.1, which the Markdown preview needs;
-- the meson options passed to `vte`, `libxapp` and `cinnamon-desktop` match the pinned tags;
-- the `python-tools` module uses the network at build time, which Flathub does not allow; for Flathub,
-  generate offline module lists with `flatpak-pip-generator`.
+The release workflow builds the same manifest and attaches `FileHarbor-<version>.flatpak` to the GitHub release; users
+install it with `flatpak install --user FileHarbor-<version>.flatpak`. It is **not** published on a Flatpak store, only
+as this direct bundle. The Python packages come from `flatpak/python3-modules.yaml`; to refresh them run
+`flatpak-pip-generator --runtime org.gnome.Sdk//50 --output python3-modules --yaml markdown pygments pyyaml "pillow==11.3.0"`.
 
 Limits of a sandboxed file manager: the **embedded terminal runs inside the sandbox**, not on the host
 (use `flatpak-spawn --host` for a host shell); devices and network mounts depend on the host's gvfs;

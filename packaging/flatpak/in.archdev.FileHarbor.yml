@@ -1,12 +1,15 @@
-# Flatpak manifest for FileHarbor (Flathub app id in.archdev.FileHarbor).
+# Flatpak manifest for FileHarbor (app id in.archdev.FileHarbor).
+#
+# FileHarbor is shipped as a direct Flatpak bundle attached to each GitHub release (built by the release
+# workflow); it is not published on a Flatpak store. Build and install it from this checkout with:
 #
 #   flatpak-builder --user --install --force-clean build-flatpak packaging/flatpak/in.archdev.FileHarbor.yml
 #   flatpak run in.archdev.FileHarbor
 #
-# Everything is fetched from pinned sources (no network at build time), as Flathub requires. The Python
-# packages come from python3-modules.yaml (made with flatpak-pip-generator, see packaging/README.md).
-# Limits of a sandboxed file manager: the embedded terminal runs inside the sandbox, not on the host
-# (use `flatpak-spawn --host` for a host shell); devices and network mounts depend on the host's gvfs.
+# Dependencies come from pinned sources (checksums or commits); the Python packages are listed in
+# python3-modules.yaml (made with flatpak-pip-generator). Limits of a sandboxed file manager: the embedded
+# terminal runs inside the sandbox, not on the host (use `flatpak-spawn --host` for a host shell); devices
+# and network mounts depend on the host's gvfs.
 app-id: in.archdev.FileHarbor
 runtime: org.gnome.Platform
 runtime-version: '50'
@@ -168,6 +171,5 @@ modules:
       - rm -f /app/share/applications/nemo-autostart.desktop /app/share/applications/nemo-autorun-software.desktop
       - install -Dm644 /run/build/fileharbor/packaging/flatpak/in.archdev.FileHarbor.metainfo.xml /app/share/metainfo/in.archdev.FileHarbor.metainfo.xml
     sources:
-      - type: archive
-        url: https://github.com/asuka-405/FileHarbor/releases/download/v0.1.0/fileharbor-0.1.0.tar.gz
-        sha256: 6a0c3af70ae0a20efc0e7fe1e3133390313cbe9d99e80bbf1bfd38a393dfba8f
+      - type: dir
+        path: ../..
