@@ -111,6 +111,7 @@ modules:
       - --disable-doc
       - --disable-debug
       - --disable-ffplay
+      - --disable-ffnvcodec
       - --enable-gpl
       - --enable-version3
     post-install:
