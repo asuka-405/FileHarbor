@@ -163,7 +163,8 @@ class Setup:
         self.say("   create %s" % path)
         if not self.dry:
             os.makedirs(path, exist_ok=True)
-        self.state["dirs"].append(path)
+        if path not in self.state["dirs"]:
+            self.state["dirs"].append(path)
 
     def write(self, path, text, mode=0o644):
         self.say("   write %s" % path)
@@ -262,7 +263,8 @@ class Setup:
     def apply_settings_user(self, chosen):
         for key, (kind, value) in chosen.items():
             old = self.query(["dconf", "read", DCONF_PATH + key])
-            self.state["keys"][key] = old or None                   # None: it was not set, undo resets it
+            if key not in self.state["keys"]:                      # keep the value from before the first run
+                self.state["keys"][key] = old or None               # None: it was not set, undo resets it
             self.run(["gsettings", "set", SCHEMA, key, self.gv(kind, value)])
             self.say("   %s = %s" % (key, self.gv(kind, value)))
 
@@ -319,7 +321,8 @@ class Setup:
         if mode == "always":
             if not standard:
                 self.run(["systemctl"] + flag + ["link", unit])
-                self.state["units"].append({"link": unit})
+                if {"link": unit} not in self.state["units"]:
+                    self.state["units"].append({"link": unit})
             dropin = ("/etc/systemd/user" if self.system else os.path.join(self.config_home(), "systemd", "user")) \
                 + "/%s.d/setup.conf" % UNIT
             if extra:
@@ -332,7 +335,8 @@ class Setup:
                 self.run(["systemctl", "--user", "enable", "--now", UNIT])
             else:
                 self.run(["systemctl", "--global", "enable", UNIT])
-            self.state["units"].append({"enabled": UNIT})
+            if {"enabled": UNIT} not in self.state["units"]:
+                self.state["units"].append({"enabled": UNIT})
         else:
             if self.system:
                 self.run(["systemctl", "--global", "disable", UNIT], quiet=True)
@@ -347,6 +351,8 @@ class Setup:
 
     def setup_integration(self):
         self.step("Desktop integration")
+        # the folder handler as it is before FileHarbor's launcher is registered (afterwards the query may return FileHarbor itself)
+        self.pre_mime = {} if self.system else {m: self.query(["xdg-mime", "query", "default", m]) for m in MIME_TYPES}
         # launcher, icons and D-Bus services
         if IN_CHECKOUT and not self.system:
             self.say("   running from a checkout: registering its launcher, icons and D-Bus services")
@@ -363,6 +369,8 @@ class Setup:
             want = self.ask_bool("Make FileHarbor the default for opening folders", True)
         if want:
             self.set_default_manager()
+        elif self.state["mime"] and not self.system:
+            self.restore_default_manager()
         # Show in folder / FileManager1 owner
         if want and not self.system and not IN_CHECKOUT:
             self.say("   'Show in folder' from browsers and other apps asks org.freedesktop.FileManager1.")
@@ -386,7 +394,8 @@ class Setup:
             if not cp.has_section("Default Applications"):
                 cp.add_section("Default Applications")
             for m in MIME_TYPES:
-                self.state["mime"][m] = cp.get("Default Applications", m, fallback=None)
+                if m not in self.state["mime"]:
+                    self.state["mime"][m] = cp.get("Default Applications", m, fallback=None)
                 cp.set("Default Applications", m, DESKTOP_ID + ";")
             self.say("   write %s" % path)
             if not self.dry:
@@ -396,9 +405,31 @@ class Setup:
             self.state["mimeapps"] = path
             return
         for m in MIME_TYPES:
-            self.state["mime"][m] = self.query(["xdg-mime", "query", "default", m]) or None
+            if m not in self.state["mime"]:
+                old = self.pre_mime.get(m)
+                self.state["mime"][m] = None if old in (None, "", DESKTOP_ID) else old
         self.run(["xdg-mime", "default", DESKTOP_ID] + MIME_TYPES)
         self.say("   default for folders: %s" % DESKTOP_ID)
+
+    def restore_default_manager(self):
+        """Puts the folder handler back to what it was before the first run (user scope)."""
+        path = self.mimeapps_path()
+        gone = []
+        for m, old in self.state["mime"].items():
+            if old and old != DESKTOP_ID:
+                self.run(["xdg-mime", "default", old, m])
+            else:
+                gone.append(m)
+        if gone and not self.dry and os.path.isfile(path):          # read after xdg-mime has written its changes
+            cp = configparser.RawConfigParser(strict=False)
+            cp.optionxform = str
+            cp.read(path)
+            for m in gone:
+                cp.remove_option("Default Applications", m)
+            with open(path, "w") as f:
+                cp.write(f, space_around_delimiters=False)
+        self.state["mime"] = {}
+        self.say("   default for folders: restored")
 
     # ------------------------------------------------------------------ run
     def save_state(self):
@@ -416,16 +447,32 @@ class Setup:
             print("Setup already ran on %s (%s). Run with --force to do it again, --status to see what it did,\n"
                   "or --undo to take it back." % (prev.get("time"), prev.get("scope")))
             return 0
+        if os.path.isfile(self.state_path):            # --force: build on the earlier run, so --undo still goes back to the very start
+            try:
+                prev = json.load(open(self.state_path))
+                for k in ("files", "dirs", "units"):
+                    self.state[k] = prev.get(k, [])
+                for k in ("keys", "mime"):
+                    self.state[k] = prev.get(k, {})
+                for k in ("launcher", "mimeapps", "profile_added", "dconf"):
+                    if prev.get(k):
+                        self.state[k] = prev[k]
+            except (ValueError, OSError):
+                pass
         print("FileHarbor setup (%s scope%s)" % ("system" if self.system else "user", ", dry run" if self.dry else ""))
         if not self.interactive and not self.a.yes:
             print("No terminal: using the current values. Use --yes to say so explicitly.")
-        chosen = self.collect_settings()
-        if self.system:
-            self.apply_settings_system(chosen)
-        else:
-            self.apply_settings_user(chosen)
-        self.setup_storage()
-        self.setup_integration()
+        steps = set(self.a.only or ["settings", "storage", "integration"])
+        if "settings" in steps:
+            chosen = self.collect_settings()
+            if self.system:
+                self.apply_settings_system(chosen)
+            else:
+                self.apply_settings_user(chosen)
+        if "storage" in steps:
+            self.setup_storage()
+        if "integration" in steps:
+            self.setup_integration()
         self.save_state()
         if not self.system:
             self.run(["gsettings", "set", "in.archdev.FileHarbor.preferences", "setup-done", "true"], quiet=True)
@@ -514,6 +561,8 @@ def main():
     ap.add_argument("--force", action="store_true", help="run again although setup already ran")
     ap.add_argument("--status", action="store_true", help="show what a previous run did")
     ap.add_argument("--undo", action="store_true", help="take a previous run back")
+    ap.add_argument("--only", action="append", choices=["settings", "storage", "integration"],
+                    help="do only this step (repeatable), for example --only storage")
     ap.add_argument("--storage", choices=["on-demand", "always", "off"], help="Storage Sense service mode")
     ap.add_argument("--root", help="folder Storage Sense indexes (default: the home folder)")
     ap.add_argument("--threshold-mb", type=int, help="rescan when free space changes by this much")

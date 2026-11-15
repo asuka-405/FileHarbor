@@ -1,10 +1,8 @@
 # One-time setup
 
-FileHarbor opens its setup page by itself the first time it starts: a tab with the choices below. **Apply setup** applies them, **Not now** closes the tab (it comes back at the next start), **Don't show again** keeps the defaults. **Tools > FileHarbor setup** opens it again at any time. Ticking *Apply these as defaults for everyone on this computer* runs the system scope through `pkexec`, which asks for your password.
+FileHarbor opens its setup page by itself the first time it starts: a tab with the choices below. **Every choice takes effect the moment you make it**, so there is no Apply button: change the theme and the window changes, tick a box and it is saved. **Done** closes the tab, **Reset to defaults** puts the settings on the page back to FileHarbor's defaults, and **Use these for everyone…** makes the current choices the defaults for every account (it runs the system scope through `pkexec`, which asks for your password). If you close the tab without pressing Done, the page opens again at the next start unless you changed something. **Tools > FileHarbor setup** opens it at any time.
 
-The page runs `fileharbor-setup`, the same program you can run in a terminal, so both do the same thing and `--undo` takes either back.
-
-`fileharbor-setup` sets FileHarbor up in one go. It asks about each thing (Enter keeps the current value), applies the answers, and records what it did so it can be undone. From a checkout use `scripts/setup.sh` after `scripts/build.sh`.
+The background service and the folder default are changed by `fileharbor-setup`, the same program you can run in a terminal. Each change from the page is one `fileharbor-setup --only ...` run, and `fileharbor-setup --undo` takes them back to how things were before the first one.
 
 # Scope
 
@@ -38,6 +36,7 @@ fileharbor-setup --yes                      no questions; keep current values
 fileharbor-setup --yes --storage always --theme ocean --mode dark --roundness rounded --spaciousness comfortable
 fileharbor-setup --set show-hidden-files=true   set any one preference (repeatable)
 fileharbor-setup --default-manager | --no-default-manager
+fileharbor-setup --only storage --storage always   do only one step: settings, storage or integration
 fileharbor-setup --force                    run again (it refuses by default once it has run)
 fileharbor-setup --status                   print what the last run did
 fileharbor-setup --undo                     restore settings, default handlers, units and files it wrote

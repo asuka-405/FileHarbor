@@ -12,7 +12,7 @@ Nemo 6.8.3.
 - 12 themes with dark and light variants, a Mode choice and an adaptive System theme (default) that detects
   COSMIC, GNOME, KDE Plasma, Cinnamon and Hyprland; coral accent by default, optional desktop accent.
 - Corner roundness and spaciousness settings (Edit > Appearance); the defaults keep the theme's own look.
-- Setup page that opens on the first start (and from Tools > FileHarbor setup), and `fileharbor-setup`: one-time setup of settings, the Storage Sense service and desktop integration, for one
+- Setup page that opens on the first start (and from Tools > FileHarbor setup); every choice takes effect at once. Also `fileharbor-setup`: one-time setup of settings, the Storage Sense service and desktop integration, for one
   account or the whole system, with `--dry-run` and `--undo`.
 - Developer mode: debug log, GTK inspector, `dev.css` hot reload and a developer panel.
 
