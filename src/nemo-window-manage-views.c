@@ -279,7 +279,7 @@ viewed_file_changed_callback (NemoFile *file,
                 slot->viewed_file_seen = TRUE;
         }
 
-	/* FileHarbor: x-nemo-storage:/// is a virtual page with no backing
+	/* FileHarbor: x-fileharbor-storage:/// is a virtual page with no backing
 	 * file, so it always looks "gone". Never redirect away from it. */
 	{
 		char *file_uri = nemo_file_get_uri (file);
@@ -1777,7 +1777,7 @@ display_view_selection_failure (NemoWindow *window, NemoFile *file,
 				(_("Could not display \"%s\"."),
 				 uri_for_display);
 			detail_message = g_strdup
-				(_("Nemo has no installed viewer capable of displaying the folder."));
+				(_("FileHarbor has no installed viewer capable of displaying the folder."));
 		} else {
 			error_message = g_strdup_printf
 				(_("Could not display \"%s\"."),
@@ -1800,10 +1800,10 @@ display_view_selection_failure (NemoWindow *window, NemoFile *file,
 			error_message = g_strdup_printf (_("Could not display \"%s\"."),
 							 uri_for_display);
 			if (scheme_string != NULL) {
-				detail_message = g_strdup_printf (_("Nemo cannot handle \"%s\" locations."),
+				detail_message = g_strdup_printf (_("FileHarbor cannot handle \"%s\" locations."),
 								  scheme_string);
 			} else {
-				detail_message = g_strdup (_("Nemo cannot handle this kind of location."));
+				detail_message = g_strdup (_("FileHarbor cannot handle this kind of location."));
 			}
 			g_free (scheme_string);
 			break;

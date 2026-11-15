@@ -385,11 +385,11 @@ action_about_nemo_callback (GtkAction *action,
 				gpointer user_data)
 {
 	const gchar *license[] = {
-		N_("Nemo is free software; you can redistribute it and/or modify "
+		N_("FileHarbor is free software; you can redistribute it and/or modify "
 		   "it under the terms of the GNU General Public License as published by "
 		   "the Free Software Foundation; either version 2 of the License, or "
 		   "(at your option) any later version."),
-		N_("Nemo is distributed in the hope that it will be useful, "
+		N_("FileHarbor is distributed in the hope that it will be useful, "
 		   "but WITHOUT ANY WARRANTY; without even the implied warranty of "
 		   "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the "
 		   "GNU General Public License for more details."),
@@ -1536,7 +1536,7 @@ static const GtkActionEntry main_entries[] = {
                                  G_CALLBACK (action_appearance_callback) },
                                { "Preferences", "xsi-toolbox-symbolic",
                                  N_("Prefere_nces"),
-                                 NULL, N_("Edit Nemo preferences"),
+                                 NULL, N_("Edit FileHarbor preferences"),
                                  G_CALLBACK (action_preferences_callback) },
 #ifdef TEXT_CHANGE_UNDO
   /* name, stock id, label */  { "Undo", NULL, N_("_Undo"),
@@ -1559,7 +1559,7 @@ static const GtkActionEntry main_entries[] = {
                                  G_CALLBACK (action_reload_callback) },
   /* name, stock id */         { "NemoHelp", "xsi-help-contents-symbolic",
   /* label, accelerator */       N_("_All Topics"), "F1",
-  /* tooltip */                  N_("Display Nemo help"),
+  /* tooltip */                  N_("Display FileHarbor help"),
                                  G_CALLBACK (action_nemo_manual_callback) },
                                { "NemoShortcuts", "xsi-keyboard-shortcuts-symbolic",
                                  N_("_Keyboard Shortcuts"), "<control>F1",
@@ -1587,7 +1587,7 @@ static const GtkActionEntry main_entries[] = {
                                  G_CALLBACK (action_welcome_tour_callback) },
   /* name, stock id */         { "About Nemo", "xsi-help-about-symbolic",
   /* label, accelerator */       N_("_About"), NULL,
-  /* tooltip */                  N_("Display credits for the creators of Nemo"),
+  /* tooltip */                  N_("Display credits for the creators of FileHarbor"),
                                  G_CALLBACK (action_about_nemo_callback) },
   /* name, stock id */         { "Zoom In", "xsi-zoom-in-symbolic",
   /* label, accelerator */       N_("Zoom _In"), "<control>plus",
@@ -1641,7 +1641,7 @@ static const GtkActionEntry main_entries[] = {
   /* name, stock id, label */  { "Bookmarks", NULL, N_("_Bookmarks") },
   /* name, stock id, label */  { "Tabs", NULL, N_("_Tabs") },
   /* name, stock id, label */  { "New Window", NULL, N_("New _Window"),
-                                 "<control>N", N_("Open another Nemo window for the displayed location"),
+                                 "<control>N", N_("Open another FileHarbor window for the displayed location"),
                                  G_CALLBACK (action_new_window_callback) },
   /* name, stock id, label */  { "New Tab", "xsi-tab-new-symbolic", N_("New _Tab"),
                                  "<control>T", N_("Open another tab for the displayed location"),

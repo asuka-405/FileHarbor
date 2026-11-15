@@ -1,6 +1,6 @@
 # Maintainer: Asuka <asuka@archdev.in>
-# FileHarbor: a fork of the Nemo file manager. It installs the `nemo` binary, so it replaces the nemo
-# package. Set the checksum before publishing to the AUR (see packaging/README.md).
+# FileHarbor: a fork of the Nemo file manager. It installs the `fileharbor` binary (plus a `nemo` link and Nemo's
+# library and data file names), so it replaces the nemo package. Set the checksum before publishing to the AUR (see packaging/README.md).
 pkgname=fileharbor
 pkgver=0.1.0
 pkgrel=1

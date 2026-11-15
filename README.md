@@ -55,8 +55,8 @@ in FileHarbor here, not to them.
   while the shell is driving. Linking can be switched off in Appearance.
 
 ### Storage page
-- Sidebar > **Storage** (`x-nemo-storage:///`). A background service (`nemo-storage-daemon`, D-Bus
-  `org.nemo.StorageSense`) indexes your home folder and re-scans when free space changes by 200 MB or
+- Sidebar > **Storage** (`x-fileharbor-storage:///`). A background service (`fileharbor-storage-daemon`, D-Bus
+  `in.archdev.FileHarbor.StorageSense`) indexes your home folder and re-scans when free space changes by 200 MB or
   more. The page shows usage by type, a **treemap**, folders, the largest files, safe-to-clean items and
   what grew recently, with delete, properties and expandable folders.
 
@@ -90,8 +90,11 @@ permissions: only install ones you trust.
 
 ## Install
 
-FileHarbor installs the `nemo` binary and Nemo's libraries and D-Bus names, so it **replaces** the
-`nemo` package rather than installing beside it.
+FileHarbor installs the `fileharbor` binary (with `nemo` and `nemo-desktop` links so old scripts, nemo actions
+and extensions keep working) and keeps Nemo's library and data file names, so it **replaces** the `nemo` package
+rather than installing beside it. Its settings are separate from Nemo's: they live under
+`in.archdev.FileHarbor.*` (gsettings) and `~/.config/fileharbor`, and the first run copies an existing Nemo
+configuration across.
 
 ### Arch Linux (AUR)
 
@@ -161,7 +164,7 @@ comment, so comparing with a new Nemo release stays manageable.
     fileharbor/
       tools/            built-in tools: Python/GTK pages (fhtools/), `fileharbor-tools`, tests/
       extensions/       bundled sample extension (system-glance)
-      storage-sense/    indexing service (D-Bus: org.nemo.StorageSense)
+      storage-sense/    indexing service (D-Bus: in.archdev.FileHarbor.StorageSense)
       docs/             THEMING.md, EXTENSIONS.md
     scripts/            build.sh, run.sh, test.sh, release.sh
     packaging/          aur/, flatpak/, debian/ (inherited)

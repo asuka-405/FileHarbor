@@ -7,7 +7,7 @@
 | Flatpak `in.archdev.FileHarbor` | `flatpak/in.archdev.FileHarbor.yml`, `.metainfo.xml` | Direct bundle on each GitHub release; built and smoke-tested in a Docker container (GNOME 50) |
 | Debian files | `debian/` | Inherited from Nemo, unmaintained |
 
-FileHarbor installs the `nemo` binary, libraries and D-Bus names, so on Arch it **replaces** the `nemo`
+FileHarbor installs the `fileharbor` binary (with `nemo` and `nemo-desktop` links for old scripts), and keeps Nemo's library and data file names so Nemo extensions keep working, so on Arch it **replaces** the `nemo`
 package (`conflicts` and `provides` are set) and it cannot be installed next to it.
 
 ## Arch Linux / AUR

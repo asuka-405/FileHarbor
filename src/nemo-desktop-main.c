@@ -116,7 +116,7 @@ main (int argc, char *argv[])
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
-	g_set_prgname ("nemo-desktop");
+	g_set_prgname ("in.archdev.FileHarbor.Desktop");
 
 #ifdef HAVE_GTK_LAYER_SHELL
 	if (check_layer_shell_support ())

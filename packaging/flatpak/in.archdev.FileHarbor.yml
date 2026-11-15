@@ -16,9 +16,7 @@ runtime-version: '50'
 sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.node24
-command: nemo
-rename-desktop-file: nemo.desktop
-rename-icon: fileharbor
+command: fileharbor
 
 add-extensions:
   org.freedesktop.Platform.ffmpeg-full:
@@ -43,8 +41,7 @@ finish-args:
   - --talk-name=org.gtk.vfs.*
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.freedesktop.FileManager1
-  - --own-name=org.Nemo
-  - --own-name=org.nemo.StorageSense
+  - --own-name=in.archdev.FileHarbor.StorageSense
   - --talk-name=ca.desrt.dconf
   - --env=DCONF_USER_CONFIG_DIR=.config/dconf
 

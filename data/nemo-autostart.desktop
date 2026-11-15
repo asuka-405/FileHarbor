@@ -2,7 +2,7 @@
 Type=Application
 Name=Nemo
 Comment=Start Nemo desktop at log in
-Exec=nemo-desktop
+Exec=fileharbor-desktop
 OnlyShowIn=X-Cinnamon;
 AutostartCondition=GSettings org.nemo.desktop show-desktop-icons
 X-GNOME-AutoRestart=true

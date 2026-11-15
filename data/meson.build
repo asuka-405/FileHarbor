@@ -4,7 +4,7 @@
 desktopFiles = [
   'nemo-autorun-software.desktop',
   'nemo-autostart.desktop',
-  'nemo.desktop',
+  'in.archdev.FileHarbor.desktop',
 ]
 
 install_data(desktopFiles,
@@ -17,14 +17,14 @@ dataConf.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
 
 dbusFiles = [
   configure_file(
-    input : 'nemo.service.in',
-    output: 'nemo.service',
+    input : 'in.archdev.FileHarbor.service.in',
+    output: 'in.archdev.FileHarbor.service',
     configuration: dataConf,
   ),
 
   configure_file(
-    input : 'nemo.FileManager1.service.in',
-    output: 'nemo.FileManager1.service',
+    input : 'in.archdev.FileHarbor.FileManager1.service.in',
+    output: 'in.archdev.FileHarbor.FileManager1.service',
     configuration: dataConf,
   ),
 ]

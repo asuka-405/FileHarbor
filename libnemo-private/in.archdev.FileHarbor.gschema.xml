@@ -1,40 +1,40 @@
 <schemalist>
-  <enum id="org.nemo.SpeedTradeoff">
+  <enum id="in.archdev.FileHarbor.SpeedTradeoff">
     <value nick="always" value="0"/>
     <value nick="local-only" value="1"/>
     <value nick="never" value="2"/>
   </enum>
 
-  <enum id="org.nemo.ClickPolicy">
+  <enum id="in.archdev.FileHarbor.ClickPolicy">
     <value nick="single" value="0"/>
     <value nick="double" value="1"/>
   </enum>
 
-  <enum id="org.nemo.ActivationChoice">
+  <enum id="in.archdev.FileHarbor.ActivationChoice">
     <value nick="launch" value="0"/>
     <value nick="display" value="1"/>
     <value nick="ask" value="2"/>
   </enum>
 
-  <enum id="org.nemo.FolderView">
+  <enum id="in.archdev.FileHarbor.FolderView">
     <value nick="icon-view" value="0"/>
     <value nick="compact-view" value="1"/>
     <value nick="list-view" value="2"/>
   </enum>
 
-  <enum id="org.nemo.DateFormat">
+  <enum id="in.archdev.FileHarbor.DateFormat">
     <value nick="locale" value="0"/>
     <value nick="iso" value="1"/>
     <value nick="informal" value="2"/>
   </enum>
 
-  <enum id="org.nemo.DateFontChoice">
+  <enum id="in.archdev.FileHarbor.DateFontChoice">
     <value nick="auto-mono" value="0"/>
     <value nick="system-mono" value="1"/>
     <value nick="no-mono" value="2"/>
   </enum>
 
-  <enum id="org.nemo.SortOrder">
+  <enum id="in.archdev.FileHarbor.SortOrder">
     <value nick="manually" value="0"/>
     <value nick="name" value="1"/>
     <value nick="size" value="2"/>
@@ -45,7 +45,7 @@
     <value nick="trash-time" value="7"/>
   </enum>
 
-  <enum id="org.nemo.ZoomLevel">
+  <enum id="in.archdev.FileHarbor.ZoomLevel">
     <value nick="smallest" value="0"/>
     <value nick="smaller" value="1"/>
     <value nick="small" value="2"/>
@@ -55,38 +55,43 @@
     <value nick="largest" value="6"/>
   </enum>
 
-  <enum id="org.nemo.TabPosition">
+  <enum id="in.archdev.FileHarbor.TabPosition">
     <value nick="after-current-tab" value="0"/>
     <value nick="end" value="1"/>
   </enum>
   
-  <enum id="org.nemo.SizePrefixes">
+  <enum id="in.archdev.FileHarbor.SizePrefixes">
     <value value="0" nick="base-10"/>
     <value value="1" nick="base-10-full"/>
     <value value="2" nick="base-2"/>
     <value value="3" nick="base-2-full"/>
   </enum>
 
-  <enum id="org.nemo.OpenAsRootMethod">
+  <enum id="in.archdev.FileHarbor.OpenAsRootMethod">
     <value nick="auto" value="0"/>
     <value nick="pkexec" value="1"/>
     <value nick="admin" value="2"/>
   </enum>
 
-  <schema id="org.nemo" path="/org/nemo/" gettext-domain="nemo">
-    <child name="preferences" schema="org.nemo.preferences"/>
-    <child name="icon-view" schema="org.nemo.icon-view"/>
-    <child name="compact-view" schema="org.nemo.compact-view"/>
-    <child name="list-view" schema="org.nemo.list-view"/>
-    <child name="sidebar-panels" schema="org.nemo.sidebar-panels"/>
-    <child name="desktop" schema="org.nemo.desktop"/>
-    <child name="window-state" schema="org.nemo.window-state"/>
-    <child name="search" schema="org.nemo.search"/>
-    <child name="preview-pane" schema="org.nemo.preview-pane"/>
+  <schema id="in.archdev.FileHarbor" path="/in/archdev/FileHarbor/" gettext-domain="nemo">
+    <child name="preferences" schema="in.archdev.FileHarbor.preferences"/>
+    <child name="icon-view" schema="in.archdev.FileHarbor.icon-view"/>
+    <child name="compact-view" schema="in.archdev.FileHarbor.compact-view"/>
+    <child name="list-view" schema="in.archdev.FileHarbor.list-view"/>
+    <child name="sidebar-panels" schema="in.archdev.FileHarbor.sidebar-panels"/>
+    <child name="desktop" schema="in.archdev.FileHarbor.desktop"/>
+    <child name="window-state" schema="in.archdev.FileHarbor.window-state"/>
+    <child name="search" schema="in.archdev.FileHarbor.search"/>
+    <child name="preview-pane" schema="in.archdev.FileHarbor.preview-pane"/>
+    <key name="migrated-from-nemo" type="b">
+      <default>false</default>
+      <summary>Settings copied from Nemo</summary>
+      <description>Set once FileHarbor has copied an existing Nemo configuration (org.nemo.* settings, themes and remote connections) to its own locations.</description>
+    </key>
   </schema>
 
-  <schema id="org.nemo.preferences" path="/org/nemo/preferences/" gettext-domain="nemo">
-    <key name="tabs-open-position" enum="org.nemo.TabPosition">
+  <schema id="in.archdev.FileHarbor.preferences" path="/in/archdev/FileHarbor/preferences/" gettext-domain="nemo">
+    <key name="tabs-open-position" enum="in.archdev.FileHarbor.TabPosition">
       <aliases>
 	<alias value='after_current_tab' target='after-current-tab'/>
       </aliases>
@@ -268,7 +273,7 @@
       <summary>Show warning when opening as root</summary>
       <description>If set to true, then Nemo show warning message when run Nemo as root user.</description>
     </key>
-    <key name="open-as-root-method" enum="org.nemo.OpenAsRootMethod">
+    <key name="open-as-root-method" enum="in.archdev.FileHarbor.OpenAsRootMethod">
       <default>'auto'</default>
       <summary>How the 'Open as Root' action opens a folder</summary>
       <description>Possible values are "pkexec" (open a new Nemo window running as root), "admin" (open a new Nemo window at the folder's admin:// location) and "auto" (use "pkexec" on X11 and "admin" on Wayland, where pkexec may not be able to launch graphical applications).</description>
@@ -293,18 +298,18 @@
       <summary>Whether to swap the hotkeys for Trash and Delete</summary>
       <description>If set to true, the Delete key will permanently delete a file, and the Shift-Delete key will only trash a file.</description>
     </key>
-    <key name="show-directory-item-counts"  enum="org.nemo.SpeedTradeoff">
+    <key name="show-directory-item-counts"  enum="in.archdev.FileHarbor.SpeedTradeoff">
       <aliases><alias value='local_only' target='local-only'/></aliases>
       <default>'local-only'</default>
       <summary>When to show number of items in a folder</summary>
       <description>Speed tradeoff for when to show the number of items in a  folder. If set to "always" then always show item counts,  even if the folder is on a remote server.  If set to "local-only" then only show counts for local file systems. If set to "never" then never bother to compute item counts.</description>
     </key>
-    <key name="click-policy" enum="org.nemo.ClickPolicy">
+    <key name="click-policy" enum="in.archdev.FileHarbor.ClickPolicy">
       <default>'double'</default>
       <summary>Type of click used to launch/open files</summary>
       <description>Possible values are "single" to launch files on a single click,  or "double" to launch them on a double click.</description>
     </key>
-    <key name="executable-text-activation" enum="org.nemo.ActivationChoice">
+    <key name="executable-text-activation" enum="in.archdev.FileHarbor.ActivationChoice">
       <default>'ask'</default>
       <summary>What to do with executable text files when activated</summary>
       <description>What to do with executable text files when they are activated (single or double clicked). Possible values are "launch" to launch them as programs, "ask" to ask what to do via a dialog, and "display" to display them as text files.</description>
@@ -329,7 +334,7 @@
       <summary>Mouse button to activate the "Back" command in browser window</summary>
       <description>For users with mice that have buttons for "Forward" and "Back", this key will set which button activates the "Back" command in a browser window. Possible values range between 6 and 14.</description>
     </key>
-    <key name="show-image-thumbnails" enum="org.nemo.SpeedTradeoff">
+    <key name="show-image-thumbnails" enum="in.archdev.FileHarbor.SpeedTradeoff">
       <aliases><alias value='local_only' target='local-only'/></aliases>
       <default>'local-only'</default>
       <summary>When to show thumbnails of image files</summary>
@@ -360,7 +365,7 @@
       <summary>Show favorites first in windows</summary>
       <description>If set to true, then Nemo shows favorites prior to other files in the icon and list views.</description>
     </key>
-    <key name="default-sort-order" enum="org.nemo.SortOrder">
+    <key name="default-sort-order" enum="in.archdev.FileHarbor.SortOrder">
       <aliases>
 	<alias value='modification_date' target='mtime'/>
       </aliases>
@@ -378,7 +383,7 @@
       <summary>Nemo uses the users home folder as the desktop</summary>
       <description>If set to true, then Nemo will use the user's home folder as the desktop.  If it is false, then it will use ~/Desktop as the desktop.</description>
     </key>
-    <key name="default-folder-viewer" enum="org.nemo.FolderView">
+    <key name="default-folder-viewer" enum="in.archdev.FileHarbor.FolderView">
       <aliases>
         <alias value='icon_view' target='icon-view'/>
         <alias value='compact_view' target='compact-view'/>
@@ -393,12 +398,12 @@
       <summary>Inherit the view type (icon, compact, list) from parent to children</summary>
       <description>When a folder is visited the viewer is inherited from that folder's parent unless you have selected another view for that particular folder.</description>
     </key>
-    <key name="date-format" enum="org.nemo.DateFormat">
+    <key name="date-format" enum="in.archdev.FileHarbor.DateFormat">
       <default>'locale'</default>
       <summary>Date Format</summary>
       <description>The format of file dates. Possible values are "locale", "iso", and "informal".</description>
     </key>
-    <key name="date-font-choice" enum="org.nemo.DateFontChoice">
+    <key name="date-font-choice" enum="in.archdev.FileHarbor.DateFontChoice">
       <default>'auto-mono'</default>
       <summary>The font to use for the date/time columns.</summary>
       <description>The format of file dates. Possible values are "auto-mono" (best effort to match the application font), "system-mono" (use the current system mono font), and "no-mono" (use a normal font).</description>
@@ -418,7 +423,7 @@
       <summary>Bulk rename utility</summary>
       <description>If set, Nemo will append URIs of selected files and treat the result as a command line for bulk renaming. Bulk rename applications can register themselves in this key by setting the key to a space-separated string of their executable name and any command line options. If the executable name is not set to a full path, it will be searched for in the search path.</description>
     </key>
-    <key name="size-prefixes" enum="org.nemo.SizePrefixes">
+    <key name="size-prefixes" enum="in.archdev.FileHarbor.SizePrefixes">
         <default>'base-10'</default>
         <summary>Prefixes used for file sizes</summary>
         <description>Determines whether Nemo uses base-10, base-10 long, base-2 or base-2 long file size prefixes</description>
@@ -537,7 +542,7 @@
     </key>
   </schema>
 
-  <schema id="org.nemo.icon-view" path="/org/nemo/icon-view/" gettext-domain="nemo">
+  <schema id="in.archdev.FileHarbor.icon-view" path="/in/archdev/FileHarbor/icon-view/" gettext-domain="nemo">
     <key name="captions" type="as">
       <default>[ 'none', 'size', 'date_modified' ]</default>
       <summary>List of possible captions on icons</summary>
@@ -556,7 +561,7 @@
       <summary>Put labels beside icons</summary>
       <description>If true, labels will be placed beside icons rather than underneath them.</description>
     </key>
-    <key name="default-zoom-level" enum="org.nemo.ZoomLevel">
+    <key name="default-zoom-level" enum="in.archdev.FileHarbor.ZoomLevel">
       <default>'standard'</default>
       <summary>Default icon zoom level</summary>
       <description>Default zoom level used by the icon view.</description>
@@ -591,8 +596,8 @@
     </key>
   </schema>
 
-  <schema id="org.nemo.compact-view" path="/org/nemo/compact-view/" gettext-domain="nemo">
-    <key name="default-zoom-level" enum="org.nemo.ZoomLevel">
+  <schema id="in.archdev.FileHarbor.compact-view" path="/in/archdev/FileHarbor/compact-view/" gettext-domain="nemo">
+    <key name="default-zoom-level" enum="in.archdev.FileHarbor.ZoomLevel">
       <default>'standard'</default>
       <summary>Default compact view zoom level</summary>
       <description>Default zoom level used by the compact view.</description>
@@ -604,8 +609,8 @@
     </key>
   </schema>
 
-  <schema id="org.nemo.list-view" path="/org/nemo/list-view/" gettext-domain="nemo">
-    <key name="default-zoom-level" enum="org.nemo.ZoomLevel">
+  <schema id="in.archdev.FileHarbor.list-view" path="/in/archdev/FileHarbor/list-view/" gettext-domain="nemo">
+    <key name="default-zoom-level" enum="in.archdev.FileHarbor.ZoomLevel">
       <default>'smaller'</default>
       <summary>Default list zoom level</summary>
       <description>Default zoom level used by the list view.</description>
@@ -626,11 +631,11 @@
     </key>
   </schema>
 
-  <schema id="org.nemo.sidebar-panels" path="/org/nemo/sidebar-panels/" gettext-domain="nemo">
-    <child name="tree" schema="org.nemo.sidebar-panels.tree"/>
+  <schema id="in.archdev.FileHarbor.sidebar-panels" path="/in/archdev/FileHarbor/sidebar-panels/" gettext-domain="nemo">
+    <child name="tree" schema="in.archdev.FileHarbor.sidebar-panels.tree"/>
   </schema>
 
-  <schema id="org.nemo.sidebar-panels.tree" path="/org/nemo/sidebar-panels/tree/" gettext-domain="nemo">
+  <schema id="in.archdev.FileHarbor.sidebar-panels.tree" path="/in/archdev/FileHarbor/sidebar-panels/tree/" gettext-domain="nemo">
     <key name="show-only-directories" type="b">
       <default>true</default>
       <summary>Only show folders in the tree side pane</summary>
@@ -638,7 +643,7 @@
     </key>
   </schema>
 
-  <schema id="org.nemo.desktop" path="/org/nemo/desktop/" gettext-domain="nemo">
+  <schema id="in.archdev.FileHarbor.desktop" path="/in/archdev/FileHarbor/desktop/" gettext-domain="nemo">
     <key name="font" type="s">
       <default l10n="messages" context="desktop-font">'Noto Sans 10'</default>
       <summary>Desktop font</summary>
@@ -715,7 +720,7 @@
     </key>
   </schema>
 
-  <schema id="org.nemo.window-state" path="/org/nemo/window-state/" gettext-domain="nemo">
+  <schema id="in.archdev.FileHarbor.window-state" path="/in/archdev/FileHarbor/window-state/" gettext-domain="nemo">
     <key name="geometry" type="s">
       <default>''</default>
       <summary>The geometry string for a navigation window.</summary>
@@ -823,7 +828,7 @@
     </key>
   </schema>
 
-  <schema id="org.nemo.plugins" path="/org/nemo/plugins/" gettext-domain="nemo">
+  <schema id="in.archdev.FileHarbor.plugins" path="/in/archdev/FileHarbor/plugins/" gettext-domain="nemo">
     <key name="disabled-extensions" type="as">
       <default>[]</default>
       <summary>List of extensions -not- to load.</summary>
@@ -841,7 +846,7 @@
     </key>
   </schema>
 
-  <schema id="org.nemo.preferences.menu-config" path="/org/nemo/preferences/menu-config/" gettext-domain="nemo">
+  <schema id="in.archdev.FileHarbor.preferences.menu-config" path="/in/archdev/FileHarbor/preferences/menu-config/" gettext-domain="nemo">
     <!-- Selection -->
     <key name="selection-menu-open" type="b">
       <default>true</default>
@@ -963,7 +968,7 @@
     </key>
   </schema>
 
-  <schema id="org.nemo.search" path="/org/nemo/search/" gettext-domain="nemo">
+  <schema id="in.archdev.FileHarbor.search" path="/in/archdev/FileHarbor/search/" gettext-domain="nemo">
     <key name="search-files-use-regex" type="b">
       <default>false</default>
       <summary>Stores the most recent state of the file search regex toggle</summary>
@@ -1019,7 +1024,7 @@
     </key>
   </schema>
 
-  <schema id="org.nemo.preview-pane" path="/org/nemo/preview-pane/" gettext-domain="nemo">
+  <schema id="in.archdev.FileHarbor.preview-pane" path="/in/archdev/FileHarbor/preview-pane/" gettext-domain="nemo">
     <key name="pane-width" type="i">
       <default>400</default>
       <summary>Width of the preview pane</summary>

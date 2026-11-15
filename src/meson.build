@@ -133,7 +133,7 @@ if gtk_layer_shell_enabled
   nemo_deps += wayland_client
 endif
 
-nemo = executable('nemo',
+nemo = executable('fileharbor',
   nemoCommon_sources + nemoWindow_sources,
   include_directories: [ rootInclude ],
   c_args: nemo_definitions,
@@ -141,13 +141,17 @@ nemo = executable('nemo',
   install: true
 )
 
-nemoDesktop = executable('nemo-desktop',
+nemoDesktop = executable('fileharbor-desktop',
   nemoCommon_sources + nemoDesktop_sources,
   include_directories: [ rootInclude],
   c_args: nemo_definitions,
   dependencies: nemo_deps,
   install: true
 )
+
+# the old Nemo command names keep working (scripts, nemo actions, extensions)
+install_symlink('nemo', install_dir: get_option('bindir'), pointing_to: 'fileharbor')
+install_symlink('nemo-desktop', install_dir: get_option('bindir'), pointing_to: 'fileharbor-desktop')
 
 nemo_autorun_software = executable('nemo-autorun-software',
   [ 'nemo-autorun-software.c' ],

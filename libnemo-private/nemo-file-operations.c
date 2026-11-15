@@ -2575,7 +2575,7 @@ prompt_empty_trash (GtkWindow *parent_window)
 	}
 	atk_object_set_role (gtk_widget_get_accessible (dialog), ATK_ROLE_ALERT);
 	gtk_window_set_wmclass (GTK_WINDOW (dialog), "empty_trash",
-				"Nemo");
+				"in.archdev.FileHarbor");
 
 	/* Make transient for the window group */
 	gtk_widget_realize (dialog);

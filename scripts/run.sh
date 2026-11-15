@@ -15,11 +15,11 @@ export LD_LIBRARY_PATH="$P/lib:$P/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export GI_TYPELIB_PATH="$P/lib/girepository-1.0${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
 if [ "$1" = "--session" ]; then
     shift
-    exec "$P/bin/nemo" "$@"
+    exec "$P/bin/fileharbor" "$@"
 fi
 if [ "$1" = "--live" ]; then
     shift
-    nemo -q 2>/dev/null
-    exec "$P/bin/nemo" "$@"
+    fileharbor -q 2>/dev/null
+    exec "$P/bin/fileharbor" "$@"
 fi
-exec dbus-run-session -- "$P/bin/nemo" "$@"
+exec dbus-run-session -- "$P/bin/fileharbor" "$@"

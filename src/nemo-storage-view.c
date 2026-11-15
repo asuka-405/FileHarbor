@@ -2,7 +2,7 @@
  *
  * New file, not present in upstream Nemo. It is a NemoView that shows no
  * files. Instead it builds a small dashboard from JSON served by
- * nemo-storage-daemon over D-Bus (see fileharbor/storage-sense/).
+ * fileharbor-storage-daemon over D-Bus (see fileharbor/storage-sense/).
  */
 
 #include <config.h>
@@ -23,9 +23,9 @@
 #include <libnemo-private/nemo-file.h>
 #include "nemo-properties-window.h"
 
-#define SS_BUS_NAME "org.nemo.StorageSense"
-#define SS_OBJ_PATH "/org/nemo/StorageSense"
-#define SS_IFACE    "org.nemo.StorageSense"
+#define SS_BUS_NAME "in.archdev.FileHarbor.StorageSense"
+#define SS_OBJ_PATH "/in/archdev/FileHarbor/StorageSense"
+#define SS_IFACE    "in.archdev.FileHarbor.StorageSense"
 
 enum { PAGE_OVERVIEW, PAGE_FOLDERS, PAGE_LARGE, PAGE_CLEANUP, PAGE_GROWTH };
 
@@ -1999,7 +1999,7 @@ static void   sv_end_loading (NemoView *v, gboolean all) { }
 static char  *sv_first_visible (NemoView *v) { return NULL; }
 static void   sv_scroll_to (NemoView *v, const char *uri) { }
 static void   sv_sort_dirs_first (NemoView *v) { }
-/* x-nemo-storage:/// is virtual: the directory load always fails, which is expected */
+/* x-fileharbor-storage:/// is virtual: the directory load always fails, which is expected */
 static void   sv_load_error (NemoView *v, GError *e) { }
 static const char *sv_get_id (NemoView *v) { return NEMO_STORAGE_VIEW_ID; }
 
@@ -2115,7 +2115,7 @@ nemo_uri_is_virtual_page (const char *uri)
 gboolean
 nemo_storage_uri_is_storage (const char *uri)
 {
-	return uri != NULL && g_str_has_prefix (uri, "x-nemo-storage:");
+	return uri != NULL && g_str_has_prefix (uri, "x-fileharbor-storage:");
 }
 
 static gboolean

@@ -6,7 +6,7 @@
 
 #include <gtk/gtk.h>
 
-#define NEMO_ADD_CONNECTION_URI "x-nemo-add-connection:///"
+#define NEMO_ADD_CONNECTION_URI "x-fileharbor-add-connection:///"
 
 typedef struct {
 	char *name;

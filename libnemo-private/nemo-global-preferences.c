@@ -450,6 +450,47 @@ setup_cached_time_data (void)
     on_time_data_changed (NULL);
 }
 
+/* FileHarbor keeps its settings under in.archdev.FileHarbor.* and its own files in ~/.config/fileharbor.
+ * The first time it runs it copies an existing Nemo configuration across (nothing is moved or deleted). */
+static void
+migrate_from_nemo (void)
+{
+	GSettingsSchemaSource *source = g_settings_schema_source_get_default ();
+	GSettingsSchema *schema;
+	GSettings *root;
+
+	if (source == NULL) {
+		return;
+	}
+	schema = g_settings_schema_source_lookup (source, "in.archdev.FileHarbor", TRUE);
+	if (schema == NULL) {
+		return;
+	}
+	root = g_settings_new_full (schema, NULL, NULL);
+	g_settings_schema_unref (schema);
+
+	if (!g_settings_get_boolean (root, "migrated-from-nemo")) {
+		gchar *dconf = g_find_program_in_path ("dconf");
+		gchar *cmd;
+		const gchar *cfg = g_get_user_config_dir ();
+
+		if (dconf != NULL) {
+			g_spawn_command_line_sync ("sh -c \"dconf dump /org/nemo/ | dconf load /in/archdev/FileHarbor/\"",
+						   NULL, NULL, NULL, NULL);
+		}
+		/* themes and remote connections that FileHarbor itself added to ~/.config/nemo */
+		cmd = g_strdup_printf ("sh -c \"mkdir -p '%s/fileharbor'; for f in themes connections.ini; do "
+				       "[ -e '%s/nemo/'$f ] && [ ! -e '%s/fileharbor/'$f ] && cp -r '%s/nemo/'$f '%s/fileharbor/'; done; true\"",
+				       cfg, cfg, cfg, cfg, cfg);
+		g_spawn_command_line_sync (cmd, NULL, NULL, NULL, NULL);
+		g_free (cmd);
+		g_free (dconf);
+		g_settings_set_boolean (root, "migrated-from-nemo", TRUE);
+		g_settings_sync ();
+	}
+	g_object_unref (root);
+}
+
 void
 nemo_global_preferences_init (void)
 {
@@ -461,20 +502,22 @@ nemo_global_preferences_init (void)
 
 	initialized = TRUE;
 
-	nemo_preferences = g_settings_new("org.nemo.preferences");
-	nemo_window_state = g_settings_new("org.nemo.window-state");
-	nemo_icon_view_preferences = g_settings_new("org.nemo.icon-view");
-	nemo_list_view_preferences = g_settings_new("org.nemo.list-view");
-	nemo_compact_view_preferences = g_settings_new("org.nemo.compact-view");
-	nemo_desktop_preferences = g_settings_new("org.nemo.desktop");
+	migrate_from_nemo ();
+
+	nemo_preferences = g_settings_new("in.archdev.FileHarbor.preferences");
+	nemo_window_state = g_settings_new("in.archdev.FileHarbor.window-state");
+	nemo_icon_view_preferences = g_settings_new("in.archdev.FileHarbor.icon-view");
+	nemo_list_view_preferences = g_settings_new("in.archdev.FileHarbor.list-view");
+	nemo_compact_view_preferences = g_settings_new("in.archdev.FileHarbor.compact-view");
+	nemo_desktop_preferences = g_settings_new("in.archdev.FileHarbor.desktop");
     /* Some settings such as show hidden files are shared between Nautilus and GTK file chooser */
     gtk_filechooser_preferences = g_settings_new_with_path ("org.gtk.Settings.FileChooser",
                                                             "/org/gtk/settings/file-chooser/");
-	nemo_tree_sidebar_preferences = g_settings_new("org.nemo.sidebar-panels.tree");
-    nemo_plugin_preferences = g_settings_new("org.nemo.plugins");
-    nemo_menu_config_preferences = g_settings_new("org.nemo.preferences.menu-config");
-    nemo_search_preferences = g_settings_new("org.nemo.search");
-    nemo_preview_pane_preferences = g_settings_new("org.nemo.preview-pane");
+	nemo_tree_sidebar_preferences = g_settings_new("in.archdev.FileHarbor.sidebar-panels.tree");
+    nemo_plugin_preferences = g_settings_new("in.archdev.FileHarbor.plugins");
+    nemo_menu_config_preferences = g_settings_new("in.archdev.FileHarbor.preferences.menu-config");
+    nemo_search_preferences = g_settings_new("in.archdev.FileHarbor.search");
+    nemo_preview_pane_preferences = g_settings_new("in.archdev.FileHarbor.preview-pane");
 	gnome_lockdown_preferences = g_settings_new("org.cinnamon.desktop.lockdown");
 	gnome_background_preferences = g_settings_new("org.cinnamon.desktop.background");
 	gnome_media_handling_preferences = g_settings_new("org.cinnamon.desktop.media-handling");

@@ -7309,11 +7309,11 @@ open_as_root (const gchar *path)
 
     if (open_as_root_uses_admin_uri ()) {
         g_autofree gchar *admin_uri = g_uri_join (G_URI_FLAGS_NONE, "admin", NULL, "", -1, path, NULL, NULL);
-        gchar *argv[] = { (gchar *) "nemo", admin_uri, NULL };
+        gchar *argv[] = { (gchar *) "fileharbor", admin_uri, NULL };
 
         spawn_open_as_root (argv);
     } else {
-        gchar *argv[] = { (gchar *) "pkexec", (gchar *) "nemo", (gchar *) path, NULL };
+        gchar *argv[] = { (gchar *) "pkexec", (gchar *) "fileharbor", (gchar *) path, NULL };
 
         spawn_open_as_root (argv);
     }

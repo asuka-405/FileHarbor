@@ -1112,7 +1112,7 @@ menu_state_changed_callback (NemoMainApplication *self)
                                          GTK_DIALOG_MODAL,
                                          GTK_MESSAGE_INFO,
                                          GTK_BUTTONS_OK,
-                                         _("Nemo's main menu is now hidden"));
+                                         _("FileHarbor's main menu is now hidden"));
 
         gchar *secondary;
         secondary = g_strdup_printf (_("You have chosen to hide the main menu.  You can get it back temporarily by:\n\n"
@@ -1226,7 +1226,7 @@ NemoApplication *
 nemo_main_application_get_singleton (void)
 {
     return nemo_application_initialize_singleton (NEMO_TYPE_MAIN_APPLICATION,
-                                                  "application-id", "org.Nemo",
+                                                  "application-id", "in.archdev.FileHarbor",
                                                   "flags", G_APPLICATION_HANDLES_OPEN,
                                                   "register-session", TRUE,
                                                   NULL);

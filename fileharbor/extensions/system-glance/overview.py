@@ -47,7 +47,7 @@ blocks = [
     {"type": "list", "items": [
         {"title": "Home", "subtitle": os.path.expanduser("~"), "icon": "user-home-symbolic", "open": os.path.expanduser("~")},
         {"title": "Downloads", "icon": "folder-download-symbolic", "open": os.path.expanduser("~/Downloads")},
-        {"title": "Storage page", "subtitle": "What is using your disk", "icon": "drive-harddisk-symbolic", "open": "x-nemo-storage:///"},
+        {"title": "Storage page", "subtitle": "What is using your disk", "icon": "drive-harddisk-symbolic", "open": "x-fileharbor-storage:///"},
     ]},
     {"type": "text", "text": "Updated " + time.strftime("%H:%M:%S"), "dim": True},
 ]

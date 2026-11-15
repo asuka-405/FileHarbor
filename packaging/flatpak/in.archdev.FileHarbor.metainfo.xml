@@ -30,7 +30,7 @@
     <category>FileManager</category>
   </categories>
   <provides>
-    <binary>nemo</binary>
+    <binary>fileharbor</binary>
   </provides>
   <screenshots>
     <screenshot type="default">

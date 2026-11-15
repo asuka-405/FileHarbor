@@ -130,6 +130,6 @@ nemo_private = declare_dependency(
   dependencies: nemo_private_deps,
 )
 
-install_data('org.nemo.gschema.xml',
+install_data('in.archdev.FileHarbor.gschema.xml',
     install_dir: join_paths(get_option('datadir'), 'glib-2.0', 'schemas')
 )

@@ -1,8 +1,9 @@
 [Desktop Entry]
 Name=FileHarbor
+StartupWMClass=in.archdev.FileHarbor
 Comment=Access and organize files
-Exec=nemo %U
-Icon=fileharbor
+Exec=fileharbor %U
+Icon=in.archdev.FileHarbor
 # Translators: these are keywords of the file manager
 Keywords=folders;filesystem;explorer;
 Terminal=false
@@ -89,7 +90,7 @@ Name[vi]=Nhà
 Name[zh_CN]=主目录
 Name[zh_HK]=家
 Name[zh_TW]=家
-Exec=nemo %U
+Exec=fileharbor %U
 
 [Desktop Action open-computer]
 Name=Computer
@@ -166,7 +167,7 @@ Name[vi]=Máy tính
 Name[zh_CN]=计算机
 Name[zh_HK]=電腦
 Name[zh_TW]=電腦
-Exec=nemo computer:///
+Exec=fileharbor computer:///
 
 [Desktop Action open-trash]
 Name=Trash
@@ -249,4 +250,4 @@ Name[vi]=Thùng rác
 Name[zh_CN]=回收站
 Name[zh_HK]=垃圾桶
 Name[zh_TW]=垃圾桶
-Exec=nemo trash:///
+Exec=fileharbor trash:///

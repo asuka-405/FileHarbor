@@ -460,7 +460,7 @@ fh_virtual_page_title (const char *uri)
 {
 	if (uri == NULL)
 		return NULL;
-	if (g_str_has_prefix (uri, "x-nemo-storage:"))
+	if (g_str_has_prefix (uri, "x-fileharbor-storage:"))
 		return g_strdup ("Storage");
 	if (g_str_has_prefix (uri, FH_PAGE_URI_PREFIX)) {
 		FhPage *p = fh_extensions_find_page (uri, NULL);

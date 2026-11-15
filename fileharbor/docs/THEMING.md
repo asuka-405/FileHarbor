@@ -13,7 +13,7 @@ Built-in themes are read-only. Editing one and saving always creates your own co
 
 # Where themes live
 
-- Your themes: `~/.config/nemo/themes/`
+- Your themes: `~/.config/fileharbor/themes/`
 - Built-in themes: the `themes` folder inside Nemo's data directory
 
 A theme called `ocean` is the file `ocean.ini`. If you give a theme the same file name as a built-in one, yours wins. Press **Open themes folder** in the Appearance window to jump there.

@@ -49,7 +49,7 @@ static guint reload_id = 0;
 char *
 nemo_theme_manager_user_dir (void)
 {
-	return g_build_filename (g_get_user_config_dir (), "nemo", "themes", NULL);
+	return g_build_filename (g_get_user_config_dir (), "fileharbor", "themes", NULL);
 }
 
 static char *

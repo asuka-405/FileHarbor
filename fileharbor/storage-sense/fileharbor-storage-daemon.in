@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# nemo-storage-daemon: "Storage Sense" backend for the FileHarbor fork of Nemo.
+# fileharbor-storage-daemon: "Storage Sense" backend for the FileHarbor fork of Nemo.
 #
 # Tracks disk usage of a directory tree (default: $HOME) in an SQLite index,
 # watches free space, and rescans when it changes by more than a threshold
 # (default 200 MB). Exposes the index over the session bus as
-# org.nemo.StorageSense so Nemo's Storage page can query it instantly.
+# in.archdev.FileHarbor.StorageSense so Nemo's Storage page can query it instantly.
 #
 # This file is new in the fork and does not exist upstream.
 
@@ -27,12 +27,12 @@ try:
 except (ValueError, ImportError):
     _signal_add = GLib.unix_signal_add
 
-BUS_NAME = 'org.nemo.StorageSense'
-OBJ_PATH = '/org/nemo/StorageSense'
+BUS_NAME = 'in.archdev.FileHarbor.StorageSense'
+OBJ_PATH = '/in/archdev/FileHarbor/StorageSense'
 
 INTROSPECTION = '''
 <node>
-  <interface name="org.nemo.StorageSense">
+  <interface name="in.archdev.FileHarbor.StorageSense">
     <method name="GetOverview"><arg type="s" direction="out"/></method>
     <method name="GetChildren"><arg type="s" direction="in"/><arg type="s" direction="out"/></method>
     <method name="GetLargestFiles"><arg type="i" direction="in"/><arg type="s" direction="out"/></method>
@@ -528,7 +528,7 @@ class StorageSense:
         conn.register_object(OBJ_PATH, node.interfaces[0], self.on_method, self.on_get_property, None)
 
     def on_name_lost(self, conn, name):
-        sys.stderr.write('nemo-storage-daemon: could not own %s (already running?)\n' % name)
+        sys.stderr.write('fileharbor-storage-daemon: could not own %s (already running?)\n' % name)
         sys.exit(1)
 
     def run(self):

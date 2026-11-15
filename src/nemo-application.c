@@ -427,9 +427,9 @@ nemo_application_check_required_directory (NemoApplication *application,
         const char *detail_string;
         GtkDialog *dialog;
 
-        error_string = g_strdup_printf (_("Nemo could not create the required folder \"%s\"."),
+        error_string = g_strdup_printf (_("FileHarbor could not create the required folder \"%s\"."),
                                         path);
-        detail_string = _("Before running Nemo, please create the following folder, or "
+        detail_string = _("Before running FileHarbor, please create the following folder, or "
                           "set permissions such that Nemo can create it.");
 
         dialog = eel_show_error_dialog (error_string, detail_string, NULL);
@@ -595,7 +595,7 @@ nemo_application_startup (GApplication *app)
 	 */
 	G_APPLICATION_CLASS (nemo_application_parent_class)->startup (app);
 
-	gtk_window_set_default_icon_name ("fileharbor");
+	gtk_window_set_default_icon_name ("in.archdev.FileHarbor");
 
 	/* create an undo manager */
 	self->undo_manager = nemo_undo_manager_new ();

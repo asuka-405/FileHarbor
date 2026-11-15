@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=in.archdev.FileHarbor.StorageSense
+Exec=@bindir@/fileharbor-storage-daemon
+SystemdService=fileharbor-storage-sense.service

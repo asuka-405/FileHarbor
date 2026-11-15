@@ -35,7 +35,7 @@ static const Protocol protocols[] = {
 char *
 nemo_remote_connections_get_path (void)
 {
-	return g_build_filename (g_get_user_config_dir (), "nemo", "connections.ini", NULL);
+	return g_build_filename (g_get_user_config_dir (), "fileharbor", "connections.ini", NULL);
 }
 
 GList *
