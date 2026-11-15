@@ -21,7 +21,12 @@ depends=(
   libraw         # camera RAW pictures (dcraw_emu)
   gst-libav      # more audio and video formats
   catdoc         # search in legacy MS Word files
-  gvfs           # network shares, MTP and removable devices
+  gvfs           # network shares and removable drives
+  gvfs-mtp       # phones and tablets (Android file transfer)
+  gvfs-gphoto2   # cameras (PTP)
+  gvfs-afc       # iPhone and iPad
+  gvfs-smb       # Windows shares
+  gvfs-nfs       # NFS shares
 )
 makedepends=(meson gobject-introspection glib2-devel gettext)
 provides=("nemo=$_nemover")

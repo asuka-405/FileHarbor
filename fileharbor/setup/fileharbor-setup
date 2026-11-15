@@ -345,6 +345,38 @@ class Setup:
         self.state["storage"] = mode
         self.say("   Storage Sense: %s" % mode)
 
+    # ------------------------------------------------------------------ devices
+    GVFS_BACKENDS = [
+        ("phones and tablets (MTP)", "remote-volume-monitors/mtp.monitor", "gvfs-mtp"),
+        ("cameras (PTP)", "remote-volume-monitors/gphoto2.monitor", "gvfs-gphoto2"),
+        ("iPhone and iPad", "remote-volume-monitors/afc.monitor", "gvfs-afc"),
+        ("Windows shares (SMB)", "mounts/smb.mount", "gvfs-smb"),
+        ("NFS shares", "mounts/nfs.mount", "gvfs-nfs"),
+    ]
+
+    def missing_backends(self):
+        dirs = [os.path.join(d, "gvfs") for d in (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":") if d]
+        return [(what, pkg) for what, rel, pkg in self.GVFS_BACKENDS if not any(os.path.exists(os.path.join(d, rel)) for d in dirs)]
+
+    def check_devices(self):
+        self.step("Phones, cameras and network shares")
+        missing = self.missing_backends()
+        if not missing:
+            self.say("   all gvfs backends are installed")
+            return
+        for what, pkg in missing:
+            self.say("   missing: %s (%s)" % (what, pkg))
+        pk = " ".join(p for _, p in missing)
+        if shutil.which("pacman"):
+            self.say("   install with:  sudo pacman -S %s" % pk)
+        elif shutil.which("apt"):
+            self.say("   install with:  sudo apt install gvfs-backends")
+        elif shutil.which("dnf"):
+            self.say("   install with:  sudo dnf install %s" % pk)
+        else:
+            self.say("   install the gvfs packages that provide these backends")
+        self.state["missing_backends"] = [p for _, p in missing]
+
     # ------------------------------------------------------------------ 3. desktop integration
     def mimeapps_path(self):
         return "/etc/xdg/mimeapps.list" if self.system else os.path.join(self.config_home(), "mimeapps.list")
@@ -473,6 +505,7 @@ class Setup:
             self.setup_storage()
         if "integration" in steps:
             self.setup_integration()
+            self.check_devices()
         self.save_state()
         if not self.system:
             self.run(["gsettings", "set", "in.archdev.FileHarbor.preferences", "setup-done", "true"], quiet=True)

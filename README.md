@@ -139,7 +139,7 @@ them. Details in [`fileharbor/docs/SETUP.md`](fileharbor/docs/SETUP.md).
 Nemo's usual build dependencies, plus the ones FileHarbor adds. On Arch:
 
     sudo pacman -S --needed base-devel meson gobject-introspection \
-        gtk3 glib2 json-glib cinnamon-desktop xapp libexif exempi libxmlb dconf gvfs \
+        gtk3 glib2 json-glib cinnamon-desktop xapp libexif exempi libxmlb dconf gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc gvfs-smb gvfs-nfs \
         gst-plugins-base gst-plugins-good vte3 python python-cairo python-gobject \
         python-pillow python-markdown python-pygments python-yaml gtksourceview4 webkit2gtk-4.1 ffmpeg \
         prettier libraw gst-libav catdoc

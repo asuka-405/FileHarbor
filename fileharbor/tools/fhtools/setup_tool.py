@@ -83,6 +83,31 @@ def setup_program():
     return None
 
 
+GVFS_BACKENDS = [
+    ("phones and tablets", "remote-volume-monitors/mtp.monitor", "gvfs-mtp"),
+    ("cameras", "remote-volume-monitors/gphoto2.monitor", "gvfs-gphoto2"),
+    ("iPhone and iPad", "remote-volume-monitors/afc.monitor", "gvfs-afc"),
+    ("Windows shares", "mounts/smb.mount", "gvfs-smb"),
+    ("NFS shares", "mounts/nfs.mount", "gvfs-nfs"),
+]
+
+
+def missing_backends():
+    dirs = [os.path.join(d, "gvfs") for d in GLib.get_system_data_dirs()]
+    return [(what, pkg) for what, rel, pkg in GVFS_BACKENDS if not any(os.path.exists(os.path.join(d, rel)) for d in dirs)]
+
+
+def install_hint(missing):
+    pkgs = " ".join(p for _, p in missing)
+    if shutil.which("pacman"):
+        return "sudo pacman -S " + pkgs
+    if shutil.which("apt"):
+        return "sudo apt install gvfs-backends"
+    if shutil.which("dnf"):
+        return "sudo dnf install " + pkgs
+    return "the gvfs packages that provide them (" + pkgs + ")"
+
+
 def _label(text, bold=False, dim=False):
     l = Gtk.Label(xalign=0)
     if bold:
@@ -173,6 +198,14 @@ class SetupPage(ToolPage):
         self.default_mgr.set_active(self.is_default_manager())
         self.default_mgr.connect("toggled", self.set_default_manager)
         body.pack_start(self.default_mgr, False, False, 0)
+
+        missing = missing_backends()
+        if missing:
+            body.pack_start(_label("Phones, cameras and shares", bold=True), False, False, 6)
+            note = _label("Your system lacks support for: %s. Without it FileHarbor cannot see those devices. Install: %s"
+                          % (", ".join(w for w, _ in missing), install_hint(missing)))
+            note.set_selectable(True)
+            body.pack_start(note, False, False, 0)
 
         # buttons and result
         self.result = _label("", dim=True)

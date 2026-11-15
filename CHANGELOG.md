@@ -17,6 +17,7 @@ Nemo 6.8.3.
 - Developer mode: debug log, GTK inspector, `dev.css` hot reload and a developer panel.
 
 ### Fixes
+- Phones, cameras and iPhones were not listed: the Arch packages now depend on `gvfs-mtp`, `gvfs-gphoto2`, `gvfs-afc`, `gvfs-smb` and `gvfs-nfs`, and the setup tool and page warn when a backend is missing.
 - Storage Sense connects again from an installed copy (falls back to starting the service directly).
 - The launcher script removes entries left by earlier installs, so only one FileHarbor entry remains.
 
