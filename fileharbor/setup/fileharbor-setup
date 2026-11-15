@@ -1,0 +1,530 @@
+#!/usr/bin/env python3
+"""fileharbor-setup: one-time setup for FileHarbor.
+
+Walks through the settings, the Storage Sense service and the desktop integration, then applies them for
+  --user    this account only (default, no root needed), or
+  --system  every account on the machine (run as root): defaults in the dconf "local" database, the default
+            file manager in /etc/xdg/mimeapps.list and the Storage Sense unit enabled for all users.
+
+Everything it changes is written down in setup.json so that --undo can take it back.
+
+  fileharbor-setup                 interactive, for you
+  sudo fileharbor-setup --system   interactive, for everyone
+  fileharbor-setup --yes           no questions: keep current values, enable the usual integration
+  fileharbor-setup --dry-run       show what would be done, change nothing
+  fileharbor-setup --status        show what a previous run did
+  fileharbor-setup --undo          take it back
+"""
+import argparse
+import configparser
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+APP_ID = "in.archdev.FileHarbor"
+DESKTOP_ID = APP_ID + ".desktop"
+SCHEMA = APP_ID + ".preferences"
+DCONF_PATH = "/in/archdev/FileHarbor/preferences/"
+UNIT = "fileharbor-storage-sense.service"
+MIME_TYPES = ["inode/directory", "application/x-gnome-saved-search"]
+STATE_VERSION = 1
+
+BIN_DIR = os.path.dirname(os.path.realpath(__file__))
+PREFIX = os.path.dirname(BIN_DIR)
+CHECKOUT = os.path.dirname(PREFIX)                       # the repository, when running from ./install
+IN_CHECKOUT = os.path.isfile(os.path.join(CHECKOUT, "scripts", "install-launcher.sh")) and os.path.basename(PREFIX) == "install"
+STANDARD_PREFIXES = ("/usr", "/usr/local")
+
+# (key, kind, label, choices). Defaults are whatever the setting is now, so running again keeps your choices.
+SETTINGS = [
+    ("Appearance", [
+        ("fileharbor-theme", "choice", "Theme", None),             # choices come from the themes folders
+        ("fileharbor-theme-mode", "choice", "Light or dark", ["system", "light", "dark"]),
+        ("fileharbor-theme-desktop-accent", "bool", "Use the accent colour of your desktop instead of coral", None),
+        ("fileharbor-roundness", "choice", "Corner roundness (theme = as the theme says)", ["theme", "square", "soft", "rounded", "round"]),
+        ("fileharbor-spaciousness", "choice", "Spaciousness", ["compact", "default", "comfortable", "spacious"]),
+    ]),
+    ("Browsing", [
+        ("default-folder-viewer", "choice", "Default folder view", ["icon-view", "list-view", "compact-view"]),
+        ("click-policy", "choice", "Open items with", ["double", "single"]),
+        ("show-hidden-files", "bool", "Show hidden files", None),
+        ("sort-directories-first", "bool", "List folders before files", None),
+        ("restore-tabs-on-startup", "bool", "Reopen the tabs of the last session", None),
+    ]),
+    ("Built-in tools", [
+        ("text-open-in-editor", "bool", "Open text files in the built-in editor", None),
+        ("markdown-open-in-preview", "bool", "Open Markdown files in the preview", None),
+        ("media-open-in-builtin", "bool", "Play audio and video in the built-in player", None),
+        ("terminal-panel-visible", "bool", "Show the terminal panel at the top", None),
+        ("terminal-ssh-integration", "bool", "Follow ssh sessions of the terminal over sftp", None),
+    ]),
+    ("Developer", [
+        ("developer-mode", "bool", "Developer mode (debug log, inspector, developer panel)", None),
+    ]),
+]
+
+
+class Setup:
+    def __init__(self, args):
+        self.a = args
+        self.system = args.system
+        self.dry = args.dry_run
+        self.interactive = not args.yes and sys.stdin.isatty()
+        self.state_path = ("/etc/fileharbor/setup.json" if self.system
+                           else os.path.join(self.config_home(), "fileharbor", "setup.json"))
+        self.state = {"version": STATE_VERSION, "scope": "system" if self.system else "user", "prefix": PREFIX,
+                      "time": time.strftime("%Y-%m-%d %H:%M:%S"), "files": [], "dirs": [], "keys": {}, "mime": {},
+                      "units": [], "launcher": False, "dconf": None, "storage": None}
+        self.env = dict(os.environ)
+        schemas = os.path.join(PREFIX, "share", "glib-2.0", "schemas")
+        if os.path.isfile(os.path.join(schemas, "gschemas.compiled")) and PREFIX not in STANDARD_PREFIXES:
+            self.env["GSETTINGS_SCHEMA_DIR"] = schemas
+
+    # ------------------------------------------------------------------ plumbing
+    @staticmethod
+    def config_home():
+        return os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+
+    @staticmethod
+    def data_home():
+        return os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+
+    def say(self, text=""):
+        print(text)
+
+    def step(self, text):
+        print("\n== %s" % text)
+
+    def run(self, cmd, check=False, quiet=False):
+        """Runs a command (not in dry-run mode, where it is only printed). Returns (ok, stdout)."""
+        if self.dry:
+            self.say("   [dry-run] " + " ".join(cmd))
+            return True, ""
+        try:
+            p = subprocess.run(cmd, capture_output=True, text=True, env=self.env)
+        except FileNotFoundError:
+            if not quiet:
+                self.say("   %s is not installed, skipped" % cmd[0])
+            return False, ""
+        if p.returncode != 0 and not quiet:
+            self.say("   %s failed: %s" % (" ".join(cmd[:3]), (p.stderr or p.stdout).strip().splitlines()[-1:] or ""))
+        return p.returncode == 0, p.stdout.strip()
+
+    def query(self, cmd):
+        """Like run, but also runs in dry-run mode (it only reads)."""
+        try:
+            p = subprocess.run(cmd, capture_output=True, text=True, env=self.env)
+        except FileNotFoundError:
+            return None
+        return p.stdout.strip() if p.returncode == 0 else None
+
+    def ask_bool(self, label, default):
+        if not self.interactive:
+            return default
+        while True:
+            r = input("   %s [%s] " % (label, "Y/n" if default else "y/N")).strip().lower()
+            if r == "":
+                return default
+            if r in ("y", "yes"):
+                return True
+            if r in ("n", "no"):
+                return False
+
+    def ask_choice(self, label, choices, default):
+        if not self.interactive:
+            return default
+        if default not in choices:
+            default = choices[0]
+        print("   %s" % label)
+        for i, c in enumerate(choices, 1):
+            print("     %d) %s%s" % (i, c[1] if isinstance(c, tuple) else c, "  (now)" if c == default else ""))
+        while True:
+            r = input("   number or name [%s] " % default).strip()
+            if r == "":
+                return default
+            if r.isdigit() and 1 <= int(r) <= len(choices):
+                return choices[int(r) - 1]
+            if r in choices:
+                return r
+
+    def mkdir(self, path):
+        if os.path.isdir(path):
+            return
+        self.say("   create %s" % path)
+        if not self.dry:
+            os.makedirs(path, exist_ok=True)
+        self.state["dirs"].append(path)
+
+    def write(self, path, text, mode=0o644):
+        self.say("   write %s" % path)
+        if not self.dry:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w") as f:
+                f.write(text)
+            os.chmod(path, mode)
+        if path not in self.state["files"]:
+            self.state["files"].append(path)
+
+    # ------------------------------------------------------------------ gsettings value text
+    @staticmethod
+    def gv(kind, value):
+        if kind == "bool":
+            return "true" if value else "false"
+        return "'%s'" % value
+
+    @staticmethod
+    def parse_gv(text):
+        text = (text or "").strip()
+        if text in ("true", "false"):
+            return text == "true"
+        if len(text) >= 2 and text[0] == text[-1] == "'":
+            return text[1:-1]
+        return text
+
+    def current(self, key):
+        return self.parse_gv(self.query(["gsettings", "get", SCHEMA, key]))
+
+    def system_values(self):
+        """What an earlier --system run set: {key: (kind, value)}."""
+        cp = configparser.RawConfigParser()
+        cp.optionxform = str
+        try:
+            cp.read("/etc/dconf/db/local.d/00-fileharbor-setup")
+            items = cp.items(DCONF_PATH.strip("/"))
+        except (configparser.Error, OSError):
+            return {}
+        out = {}
+        for k, v in items:
+            val = self.parse_gv(v)
+            out[k] = ("bool" if isinstance(val, bool) else "choice", val)
+        return out
+
+    # ------------------------------------------------------------------ themes
+    def theme_choices(self):
+        found = {}
+        for d in (os.path.join(PREFIX, "share", "nemo", "themes"), "/usr/share/nemo/themes",
+                  os.path.join(self.config_home(), "fileharbor", "themes")):
+            if not os.path.isdir(d):
+                continue
+            for f in sorted(os.listdir(d)):
+                if f.endswith(".ini"):
+                    cp = configparser.RawConfigParser()
+                    try:
+                        cp.read(os.path.join(d, f))
+                        found[f[:-4]] = cp.get("Theme", "Name", fallback=f[:-4])
+                    except configparser.Error:
+                        found[f[:-4]] = f[:-4]
+        ids = sorted(found, key=lambda i: (i != "system", i != "fileharbor", found[i].lower()))
+        ids.append("gtk")                                # "gtk" = plain GTK theme, no override
+        return ids
+
+    # ------------------------------------------------------------------ 1. settings
+    def collect_settings(self):
+        self.step("Settings")
+        known = self.query(["gsettings", "list-keys", SCHEMA])
+        if not known:
+            self.say("   FileHarbor's settings schema is not installed or not compiled (glib-compile-schemas), skipped.")
+            return {}
+        known = set(known.split())
+        chosen = dict(self.system_values()) if self.system else {}
+        for group, items in SETTINGS:
+            self.say("\n  %s" % group)
+            for key, kind, label, choices in items:
+                if key not in known:
+                    self.say("   (no %s key in this build, skipped)" % key)
+                    continue
+                cur = chosen[key][1] if key in chosen else self.current(key)
+                if key == "fileharbor-theme":
+                    choices = self.theme_choices()
+                override = getattr(self.a, key.replace("-", "_"), None)
+                if override is not None:
+                    new = override
+                elif kind == "bool":
+                    new = self.ask_bool(label, bool(cur))
+                else:
+                    new = self.ask_choice(label, choices, cur)
+                if kind == "bool" and isinstance(new, str):
+                    new = new.lower() in ("1", "true", "yes", "on")
+                if new != cur:
+                    chosen[key] = (kind, new)
+        return chosen
+
+    def apply_settings_user(self, chosen):
+        for key, (kind, value) in chosen.items():
+            old = self.query(["dconf", "read", DCONF_PATH + key])
+            self.state["keys"][key] = old or None                   # None: it was not set, undo resets it
+            self.run(["gsettings", "set", SCHEMA, key, self.gv(kind, value)])
+            self.say("   %s = %s" % (key, self.gv(kind, value)))
+
+    def apply_settings_system(self, chosen):
+        path = "/etc/dconf/db/local.d/00-fileharbor-setup"
+        if not chosen:
+            self.say("   no defaults to write")
+            return
+        lines = ["# Written by fileharbor-setup. Defaults for every account; users can still change them.",
+                 "[%s]" % DCONF_PATH.strip("/")]
+        for key, (kind, value) in chosen.items():
+            lines.append("%s=%s" % (key, self.gv(kind, value)))
+        self.write(path, "\n".join(lines) + "\n")
+        self.state["dconf"] = path
+        profile = "/etc/dconf/profile/user"
+        text = open(profile).read() if os.path.isfile(profile) else ""
+        if "system-db:local" not in text:
+            new = (text.rstrip("\n") + "\n" if text else "user-db:user\n") + "system-db:local\n"
+            self.say("   add system-db:local to %s" % profile)
+            if not self.dry:
+                os.makedirs(os.path.dirname(profile), exist_ok=True)
+                with open(profile, "w") as f:
+                    f.write(new)
+            self.state["profile_added"] = profile
+        self.run(["dconf", "update"])
+
+    # ------------------------------------------------------------------ 2. Storage Sense
+    def unit_source(self):
+        for d in (os.path.join(PREFIX, "lib", "systemd", "user"), "/usr/lib/systemd/user", "/usr/local/lib/systemd/user"):
+            p = os.path.join(d, UNIT)
+            if os.path.isfile(p):
+                return p
+        return None
+
+    def setup_storage(self):
+        self.step("Storage Sense service")
+        self.say("   It indexes disk usage in the background so the Storage page opens instantly.")
+        modes = ["on-demand", "always", "off"]
+        self.say("   on-demand: starts when something asks for it (the Storage page), no autostart")
+        self.say("   always:    systemd starts it at login (%s)" % ("every account" if self.system else "your account"))
+        self.say("   off:       never started")
+        mode = self.a.storage or self.ask_choice("When should it run?", modes, "on-demand")
+        extra = []
+        if self.a.root:
+            extra += ["--root", self.a.root]
+        if self.a.threshold_mb:
+            extra += ["--threshold-mb", str(self.a.threshold_mb)]
+        flag = ["--global"] if self.system else ["--user"]
+        unit = self.unit_source()
+        if unit is None:
+            self.say("   the systemd unit is not installed (%s), the service stays on-demand" % UNIT)
+            mode = "on-demand" if mode == "always" else mode
+        standard = unit is not None and unit.startswith(("/usr/lib/", "/usr/local/lib/"))
+        if mode == "always":
+            if not standard:
+                self.run(["systemctl"] + flag + ["link", unit])
+                self.state["units"].append({"link": unit})
+            dropin = ("/etc/systemd/user" if self.system else os.path.join(self.config_home(), "systemd", "user")) \
+                + "/%s.d/setup.conf" % UNIT
+            if extra:
+                exe = os.path.join(PREFIX, "bin", "fileharbor-storage-daemon")
+                self.write(dropin, "[Service]\nExecStart=\nExecStart=%s %s\n" % (exe, " ".join(extra)))
+            elif os.path.isfile(dropin) and not self.dry:
+                os.remove(dropin)
+            if not self.system:
+                self.run(["systemctl", "--user", "daemon-reload"], quiet=True)
+                self.run(["systemctl", "--user", "enable", "--now", UNIT])
+            else:
+                self.run(["systemctl", "--global", "enable", UNIT])
+            self.state["units"].append({"enabled": UNIT})
+        else:
+            if self.system:
+                self.run(["systemctl", "--global", "disable", UNIT], quiet=True)
+            else:
+                self.run(["systemctl", "--user", "disable", "--now", UNIT], quiet=True)
+        self.state["storage"] = mode
+        self.say("   Storage Sense: %s" % mode)
+
+    # ------------------------------------------------------------------ 3. desktop integration
+    def mimeapps_path(self):
+        return "/etc/xdg/mimeapps.list" if self.system else os.path.join(self.config_home(), "mimeapps.list")
+
+    def setup_integration(self):
+        self.step("Desktop integration")
+        # launcher, icons and D-Bus services
+        if IN_CHECKOUT and not self.system:
+            self.say("   running from a checkout: registering its launcher, icons and D-Bus services")
+            script = os.path.join(CHECKOUT, "scripts", "install-launcher.sh")
+            ok, _ = self.run(["sh", script])
+            self.state["launcher"] = ok
+        elif IN_CHECKOUT and self.system:
+            self.say("   (a checkout cannot be registered system-wide; install the package or run meson install)")
+        elif not os.path.isfile(os.path.join(PREFIX, "share", "applications", DESKTOP_ID)):
+            self.say("   the launcher file is missing from %s, skipped" % PREFIX)
+
+        want = self.a.default_manager
+        if want is None:
+            want = self.ask_bool("Make FileHarbor the default for opening folders", True)
+        if want:
+            self.set_default_manager()
+        # Show in folder / FileManager1 owner
+        if want and not self.system and not IN_CHECKOUT:
+            self.say("   'Show in folder' from browsers and other apps asks org.freedesktop.FileManager1.")
+            if self.ask_bool("Answer those requests with FileHarbor", True):
+                svc = os.path.join(self.data_home(), "dbus-1", "services", "org.freedesktop.FileManager1.service")
+                self.write(svc, "[D-BUS Service]\nName=org.freedesktop.FileManager1\nExec=%s --no-default-window\n"
+                           % os.path.join(PREFIX, "bin", "fileharbor"))
+        # folders
+        if not self.system:
+            self.mkdir(os.path.join(self.config_home(), "fileharbor", "themes"))
+            self.mkdir(os.path.join(self.data_home(), "fileharbor", "extensions"))
+        self.run(["update-desktop-database"] + ([] if self.system else [os.path.join(self.data_home(), "applications")]),
+                 quiet=True)
+
+    def set_default_manager(self):
+        path = self.mimeapps_path()
+        if self.system:
+            cp = configparser.RawConfigParser(strict=False)
+            cp.optionxform = str
+            cp.read(path)
+            if not cp.has_section("Default Applications"):
+                cp.add_section("Default Applications")
+            for m in MIME_TYPES:
+                self.state["mime"][m] = cp.get("Default Applications", m, fallback=None)
+                cp.set("Default Applications", m, DESKTOP_ID + ";")
+            self.say("   write %s" % path)
+            if not self.dry:
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "w") as f:
+                    cp.write(f, space_around_delimiters=False)
+            self.state["mimeapps"] = path
+            return
+        for m in MIME_TYPES:
+            self.state["mime"][m] = self.query(["xdg-mime", "query", "default", m]) or None
+        self.run(["xdg-mime", "default", DESKTOP_ID] + MIME_TYPES)
+        self.say("   default for folders: %s" % DESKTOP_ID)
+
+    # ------------------------------------------------------------------ run
+    def save_state(self):
+        if self.dry:
+            return
+        os.makedirs(os.path.dirname(self.state_path), exist_ok=True)
+        with open(self.state_path, "w") as f:
+            json.dump(self.state, f, indent=2)
+
+    def go(self):
+        if self.system and os.geteuid() != 0 and not self.dry:
+            sys.exit("--system changes files under /etc: run it as root, for example  sudo %s --system" % sys.argv[0])
+        if os.path.isfile(self.state_path) and not self.a.force:
+            prev = json.load(open(self.state_path))
+            print("Setup already ran on %s (%s). Run with --force to do it again, --status to see what it did,\n"
+                  "or --undo to take it back." % (prev.get("time"), prev.get("scope")))
+            return 0
+        print("FileHarbor setup (%s scope%s)" % ("system" if self.system else "user", ", dry run" if self.dry else ""))
+        if not self.interactive and not self.a.yes:
+            print("No terminal: using the current values. Use --yes to say so explicitly.")
+        chosen = self.collect_settings()
+        if self.system:
+            self.apply_settings_system(chosen)
+        else:
+            self.apply_settings_user(chosen)
+        self.setup_storage()
+        self.setup_integration()
+        self.save_state()
+        print("\nDone%s. Log out and in again (or restart your panel) so the launcher and the folder default are picked up."
+              % (" (nothing was changed)" if self.dry else ""))
+        if not self.dry:
+            print("Undo with: fileharbor-setup %s--undo" % ("--system " if self.system else ""))
+        return 0
+
+    def status(self):
+        if not os.path.isfile(self.state_path):
+            print("Setup has not run for the %s scope." % ("system" if self.system else "user"))
+            return 1
+        print(open(self.state_path).read())
+        return 0
+
+    def undo(self):
+        if not os.path.isfile(self.state_path):
+            print("Nothing to undo: setup has not run for the %s scope." % ("system" if self.system else "user"))
+            return 1
+        if self.system and os.geteuid() != 0 and not self.dry:
+            sys.exit("run it as root: sudo %s --system --undo" % sys.argv[0])
+        st = json.load(open(self.state_path))
+        print("Undoing the setup of %s" % st.get("time"))
+        flag = ["--global"] if self.system else ["--user"]
+        for u in st.get("units", []):
+            if "enabled" in u:
+                self.run(["systemctl"] + flag + (["disable"] if self.system else ["disable", "--now"]) + [u["enabled"]], quiet=True)
+            if "link" in u:
+                self.run(["systemctl"] + flag + ["disable", UNIT], quiet=True)
+        for key, old in st.get("keys", {}).items():
+            if old is None:
+                self.run(["gsettings", "reset", SCHEMA, key])
+            else:
+                self.run(["gsettings", "set", SCHEMA, key, old])
+        mimeapps = st.get("mimeapps") or (None if self.system else self.mimeapps_path())
+        if mimeapps and os.path.isfile(mimeapps) and st.get("mime"):
+            cp = configparser.RawConfigParser(strict=False)
+            cp.optionxform = str
+            cp.read(mimeapps)
+            for m, old in st["mime"].items():
+                if old is None or old == DESKTOP_ID:
+                    cp.remove_option("Default Applications", m)
+                else:
+                    cp.set("Default Applications", m, old if old.endswith(";") else old + ";")
+            self.say("   restore %s" % mimeapps)
+            if not self.dry:
+                with open(mimeapps, "w") as f:
+                    cp.write(f, space_around_delimiters=False)
+        if st.get("launcher"):
+            self.run(["sh", os.path.join(CHECKOUT, "scripts", "install-launcher.sh"), "--remove"])
+        for f in st.get("files", []):
+            if os.path.exists(f):
+                print("   remove %s" % f)
+                if not self.dry:
+                    os.remove(f)
+                    try:
+                        os.rmdir(os.path.dirname(f))
+                    except OSError:
+                        pass
+        if st.get("profile_added") and os.path.isfile(st["profile_added"]) and not self.dry:
+            text = open(st["profile_added"]).read().replace("system-db:local\n", "")
+            open(st["profile_added"], "w").write(text)
+        if st.get("dconf"):
+            self.run(["dconf", "update"])
+        for d in reversed(st.get("dirs", [])):
+            if not self.dry:
+                try:
+                    os.rmdir(d)
+                except OSError:
+                    pass
+        if not self.dry:
+            os.remove(self.state_path)
+        print("Done. Your own files (themes, extensions, other settings) were not touched.")
+        return 0
+
+
+def main():
+    ap = argparse.ArgumentParser(description="One-time setup for FileHarbor.", formatter_class=argparse.RawDescriptionHelpFormatter,
+                                 epilog=__doc__.split("\n", 6)[-1])
+    scope = ap.add_mutually_exclusive_group()
+    scope.add_argument("--user", action="store_true", help="set up this account only (default)")
+    scope.add_argument("--system", action="store_true", help="set up every account (needs root)")
+    ap.add_argument("--yes", "-y", action="store_true", help="no questions, keep current values")
+    ap.add_argument("--dry-run", "-n", action="store_true", help="show what would be done")
+    ap.add_argument("--force", action="store_true", help="run again although setup already ran")
+    ap.add_argument("--status", action="store_true", help="show what a previous run did")
+    ap.add_argument("--undo", action="store_true", help="take a previous run back")
+    ap.add_argument("--storage", choices=["on-demand", "always", "off"], help="Storage Sense service mode")
+    ap.add_argument("--root", help="folder Storage Sense indexes (default: the home folder)")
+    ap.add_argument("--threshold-mb", type=int, help="rescan when free space changes by this much")
+    dm = ap.add_mutually_exclusive_group()
+    dm.add_argument("--default-manager", dest="default_manager", action="store_true", default=None,
+                    help="make FileHarbor the default file manager")
+    dm.add_argument("--no-default-manager", dest="default_manager", action="store_false")
+    ap.add_argument("--theme", dest="fileharbor_theme", help="theme id (system, fileharbor, ocean, ..., gtk)")
+    ap.add_argument("--mode", dest="fileharbor_theme_mode", choices=["system", "light", "dark"])
+    ap.add_argument("--roundness", dest="fileharbor_roundness", choices=["theme", "square", "soft", "rounded", "round"])
+    ap.add_argument("--spaciousness", dest="fileharbor_spaciousness", choices=["compact", "default", "comfortable", "spacious"])
+    ap.add_argument("--developer", dest="developer_mode", action="store_const", const="true")
+    args = ap.parse_args()
+    s = Setup(args)
+    if args.status:
+        return s.status()
+    if args.undo:
+        return s.undo()
+    return s.go()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

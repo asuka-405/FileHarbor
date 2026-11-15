@@ -207,6 +207,7 @@ subdir('docs')
 subdir('action-layout-editor')
 subdir('fileharbor/storage-sense')  # FileHarbor: Storage Sense backend
 subdir('fileharbor/tools')  # FileHarbor: built-in tools
+subdir('fileharbor/setup')  # FileHarbor: one-time setup tool
 subdir('fileharbor/extensions')  # FileHarbor: bundled sample extension
 
 # Post-installation actions. Skipped automatically when DESTDIR is set

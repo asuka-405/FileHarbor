@@ -121,6 +121,17 @@ a sandbox limits the embedded terminal and device access, see [`packaging/README
 
 Source tarballs, the Arch package and a Flatpak bundle are attached to the [releases](https://github.com/asuka-405/FileHarbor/releases). Production releases (`vX.Y.Z`) are built and published to the AUR automatically, see [`packaging/README.md`](packaging/README.md).
 
+### One-time setup
+
+`fileharbor-setup` (from a checkout: `scripts/setup.sh`) walks through the settings (theme, roundness,
+spaciousness, browsing, built-in tools), the Storage Sense service and the desktop integration, then applies
+them. Details in [`fileharbor/docs/SETUP.md`](fileharbor/docs/SETUP.md).
+
+    fileharbor-setup                   # for your account
+    sudo fileharbor-setup --system     # defaults for every account
+    fileharbor-setup --yes --storage always --theme ocean
+    fileharbor-setup --undo
+
 ## Build from source
 
 ### Dependencies
@@ -168,7 +179,7 @@ comment, so comparing with a new Nemo release stays manageable.
       tools/            built-in tools: Python/GTK pages (fhtools/), `fileharbor-tools`, tests/
       extensions/       bundled sample extension (system-glance)
       storage-sense/    indexing service (D-Bus: in.archdev.FileHarbor.StorageSense)
-      docs/             THEMING.md, DEVELOPER.md, EXTENSIONS.md
+      docs/             THEMING.md, DEVELOPER.md, SETUP.md, EXTENSIONS.md
     scripts/            build.sh, run.sh, test.sh, release.sh
     packaging/          aur/, flatpak/, debian/ (inherited)
     docs/upstream/      Nemo's own README
