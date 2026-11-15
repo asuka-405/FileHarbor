@@ -1,0 +1,8 @@
+[Nemo Action]
+Name=Copy full path
+Comment=Copy the path of %f to the clipboard
+Exec=sh -c 'printf %%s "$1" | wl-copy 2>/dev/null || printf %%s "$1" | xclip -selection clipboard' sh %F
+Icon-Name=edit-copy-symbolic
+Selection=s
+Extensions=any;
+Dependencies=sh;

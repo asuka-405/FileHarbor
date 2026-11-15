@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.nemo.StorageSense
+Exec=@bindir@/nemo-storage-daemon
+SystemdService=nemo-storage-sense.service

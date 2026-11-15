@@ -1,0 +1,161 @@
+name: release
+
+# Runs when you publish a release on GitHub (Releases > Draft a new release > Publish release), or by hand
+# for a tag that already has a release. Only production versions (vX.Y.Z) are built: a pre-release, or a tag
+# with a suffix such as -alpha, -beta or -rc, is skipped.
+#
+# It then: runs the tests and attaches the source tarball, builds the Arch package, builds a Flatpak
+# bundle, attaches both, and updates the AUR packages `fileharbor` (from source) and `fileharbor-bin`. See packaging/README.md for the one-time setup
+# (the AUR_SSH_KEY secret).
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Production tag to build, for example v0.1.1 (its GitHub release must exist)"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  gate:
+    name: Production release?
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - id: check
+        run: |
+          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            echo "Marked as a pre-release: nothing to build."; echo go=false >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          rc=0; scripts/ci/check-release.sh "$TAG" || rc=$?
+          case $rc in
+            0)  echo go=true >> "$GITHUB_OUTPUT" ;;
+            10) echo go=false >> "$GITHUB_OUTPUT" ;;
+            *)  exit $rc ;;
+          esac
+
+  tarball:
+    name: Tests and source tarball
+    needs: gate
+    if: needs.gate.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.build.outputs.version }}
+      sha256: ${{ steps.build.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - name: Install what the tests need
+        run: sudo apt-get update && sudo apt-get install -y python3-yaml python3-pil python3-markdown python3-pygments
+      - id: build
+        run: |
+          scripts/release.sh
+          v="$(cat VERSION)"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(cut -d' ' -f1 "dist/fileharbor-$v.tar.gz.sha256")" >> "$GITHUB_OUTPUT"
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/*.tar.gz dist/*.sha256 --clobber
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  arch:
+    name: Arch package
+    needs: tarball
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - run: pacman -Syu --noconfirm --needed git
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - run: scripts/ci/build-arch.sh "${{ needs.tarball.outputs.version }}" "dist/fileharbor-${{ needs.tarball.outputs.version }}.tar.gz" out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asset-arch
+          path: out/*.pkg.tar.zst
+
+  flatpak:
+    name: Flatpak bundle
+    needs: tarball
+    runs-on: ubuntu-latest
+    # The manifest has never been built (see packaging/README.md): a failure here must not stop the rest.
+    continue-on-error: true
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-46
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: FileHarbor-${{ needs.tarball.outputs.version }}.flatpak
+          manifest-path: packaging/flatpak/in.archdev.FileHarbor.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+          upload-artifact: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asset-flatpak
+          path: "*.flatpak"
+
+  attach:
+    name: Attach packages to the release
+    needs: [tarball, arch, flatpak]
+    if: ${{ !cancelled() && needs.tarball.result == 'success' && needs.arch.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      pkg_sha256: ${{ steps.sum.outputs.pkg_sha256 }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: asset-*
+          path: assets
+          merge-multiple: true
+      - id: sum
+        run: echo "pkg_sha256=$(sha256sum assets/fileharbor-*-x86_64.pkg.tar.zst | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" assets/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  aur:
+    name: Update the AUR packages (fileharbor and fileharbor-bin)
+    needs: [tarball, arch, attach]
+    if: ${{ !cancelled() && needs.attach.result == 'success' }}
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - run: pacman -Syu --noconfirm --needed git openssh
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - name: Push PKGBUILD and .SRCINFO of both packages
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          AUR_GIT_NAME: ${{ vars.AUR_GIT_NAME }}
+          AUR_GIT_EMAIL: ${{ vars.AUR_GIT_EMAIL }}
+        run: |
+          scripts/ci/publish-aur.sh fileharbor "${{ needs.tarball.outputs.version }}" "${{ needs.tarball.outputs.sha256 }}"
+          scripts/ci/publish-aur.sh fileharbor-bin "${{ needs.tarball.outputs.version }}" "${{ needs.attach.outputs.pkg_sha256 }}"

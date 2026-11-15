@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>in.archdev.FileHarbor</id>
+  <name>FileHarbor</name>
+  <summary>A file manager with its tools built in</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+  <developer id="in.archdev">
+    <name>Asuka</name>
+  </developer>
+  <description>
+    <p>FileHarbor is a file manager for Linux, built as a fork of Nemo. It keeps Nemo's fast, mature engine and adds the tools you usually leave the file manager for, all as tabs in the same window.</p>
+    <ul>
+      <li>An embedded terminal that follows the folder you are in</li>
+      <li>A text editor with syntax highlighting for about 170 languages, Markdown and MDX preview, and Prettier formatting</li>
+      <li>An image editor with background removal, camera RAW support and batch resize</li>
+      <li>A media player for video and music with trim, convert and GIF maker</li>
+      <li>A Storage page that shows what is using your disk</li>
+      <li>Themes you can change live, remote connections and an extension system</li>
+    </ul>
+    <p>FileHarbor is based on Nemo and is not affiliated with Linux Mint or the Nemo project.</p>
+  </description>
+  <launchable type="desktop-id">in.archdev.FileHarbor.desktop</launchable>
+  <url type="homepage">https://archdev.in/projects/fileharbor.html</url>
+  <url type="bugtracker">https://github.com/asuka-405/FileHarbor/issues</url>
+  <url type="vcs-browser">https://github.com/asuka-405/FileHarbor</url>
+  <categories>
+    <category>System</category>
+    <category>FileTools</category>
+    <category>FileManager</category>
+  </categories>
+  <provides>
+    <binary>nemo</binary>
+  </provides>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Files with the embedded terminal</caption>
+      <image type="source">https://raw.githubusercontent.com/asuka-405/FileHarbor/main/docs/screenshots/files.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Text editor with Markdown preview</caption>
+      <image type="source">https://raw.githubusercontent.com/asuka-405/FileHarbor/main/docs/screenshots/editor.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Image editor removing a plain background</caption>
+      <image type="source">https://raw.githubusercontent.com/asuka-405/FileHarbor/main/docs/screenshots/image-editor.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Storage page</caption>
+      <image type="source">https://raw.githubusercontent.com/asuka-405/FileHarbor/main/docs/screenshots/storage.png</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-11-15"/>
+  </releases>
+</component>

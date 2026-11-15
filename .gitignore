@@ -1,0 +1,15 @@
+# build output and the local install prefix
+/build/
+/install/
+
+# Python
+__pycache__/
+*.pyc
+
+# editors and OS
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+/dist/

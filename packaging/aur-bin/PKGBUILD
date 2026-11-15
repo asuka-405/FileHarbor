@@ -1,0 +1,25 @@
+# Maintainer: Asuka <asuka@archdev.in>
+# FileHarbor, prebuilt: installs the package the release workflow builds, so no compiler is needed.
+# The `depends` list is copied from packaging/aur/PKGBUILD by scripts/ci/make-pkgbuild-bin.sh.
+# Note: the package was built against the libraries Arch had on release day; after a big library update
+# (vte, webkit2gtk, glib) wait for the next release or use the source package `fileharbor`.
+pkgname=fileharbor-bin
+pkgver=0.1.0
+pkgrel=1
+_nemover=6.8.3
+pkgdesc='Nemo-based file manager with an embedded terminal, storage page, built-in editor and media tools (prebuilt)'
+arch=(x86_64)
+url='https://github.com/asuka-405/FileHarbor'
+license=(GPL-2.0-or-later LGPL-2.0-or-later)
+depends=(@DEPENDS@)
+provides=(fileharbor "nemo=$_nemover")
+conflicts=(fileharbor nemo)
+options=(!debug)
+_pkg="fileharbor-$pkgver-1-x86_64.pkg.tar.zst"
+source=("$_pkg::$url/releases/download/v$pkgver/$_pkg")
+noextract=("$_pkg")
+sha256sums=('SKIP')   # replaced by scripts/ci/make-pkgbuild-bin.sh
+
+package() {
+  bsdtar -xf "$srcdir/$_pkg" -C "$pkgdir" --exclude='.PKGINFO' --exclude='.MTREE' --exclude='.BUILDINFO' --exclude='.INSTALL' --exclude='.CHANGELOG'
+}

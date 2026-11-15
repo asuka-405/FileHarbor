@@ -1,0 +1,6 @@
+# Used by the file manager's terminal: behaves like a normal interactive bash,
+# then adds the integration.
+[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc
+[ -f ~/.bashrc ] && . ~/.bashrc
+. "$NEMO_INTEGRATION_DIR/integration.sh"
+. "$NEMO_INTEGRATION_DIR/ssh-wrapper.sh"

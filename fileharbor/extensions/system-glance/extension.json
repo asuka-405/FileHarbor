@@ -1,0 +1,15 @@
+{
+  "id": "system-glance",
+  "name": "System Glance",
+  "version": "1.0",
+  "description": "A sample extension: a live system page in the sidebar, a context-menu item, a Tools menu entry and an extra theme.",
+  "sidebar": [
+    { "name": "System", "icon": "computer-symbolic", "page": "overview" }
+  ],
+  "pages": [
+    { "id": "overview", "title": "System", "icon": "computer-symbolic", "exec": ["python3", "$EXT/overview.py"], "refresh": 5 }
+  ],
+  "tools": [
+    { "name": "Open a terminal here", "icon": "utilities-terminal-symbolic", "exec": ["sh", "-c", "x-terminal-emulator || cosmic-term || xterm"] }
+  ]
+}

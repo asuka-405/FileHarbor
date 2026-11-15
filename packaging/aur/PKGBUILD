@@ -1,0 +1,44 @@
+# Maintainer: Asuka <asuka@archdev.in>
+# FileHarbor: a fork of the Nemo file manager. It installs the `nemo` binary, so it replaces the nemo
+# package. Set the checksum before publishing to the AUR (see packaging/README.md).
+pkgname=fileharbor
+pkgver=0.1.0
+pkgrel=1
+_nemover=6.8.3
+pkgdesc='Nemo-based file manager with an embedded terminal, storage page, built-in editor and media tools'
+arch=(x86_64 aarch64)
+url='https://github.com/asuka-405/FileHarbor'
+license=(GPL-2.0-or-later LGPL-2.0-or-later)
+depends=(
+  at-spi2-core bash cairo cinnamon-desktop dconf exempi gdk-pixbuf2 glib2 glibc gst-plugins-base gstreamer
+  gtk3 hicolor-icon-theme json-glib libexif libx11 libxmlb pango python python-cairo python-gobject xapp
+  vte3 libgsf wayland
+  # built-in tools
+  python-pillow python-markdown python-pygments python-yaml gtksourceview4 webkit2gtk-4.1 ffmpeg
+  gst-plugins-good gst-plugins-base-libs
+  # optional features, installed by default so they work out of the box (the tools still run without them)
+  prettier       # code formatting in the text editor
+  libraw         # camera RAW pictures (dcraw_emu)
+  gst-libav      # more audio and video formats
+  catdoc         # search in legacy MS Word files
+  gvfs           # network shares, MTP and removable devices
+)
+makedepends=(meson gobject-introspection glib2-devel gettext)
+provides=("nemo=$_nemover")
+conflicts=(nemo)
+source=("$pkgname-$pkgver.tar.gz::$url/releases/download/v$pkgver/$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')   # replace with the value scripts/release.sh prints
+
+build() {
+  arch-meson "$pkgname-$pkgver" build \
+    -Dtracker=false -Dgtk_doc=false -Dselinux=false -Dgtk_layer_shell=false
+  meson compile -C build
+}
+
+check() {
+  "$srcdir/$pkgname-$pkgver/scripts/test.sh"
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+}

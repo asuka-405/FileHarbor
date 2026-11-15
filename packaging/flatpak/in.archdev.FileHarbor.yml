@@ -1,0 +1,165 @@
+# Flatpak manifest for FileHarbor.
+#
+# NOT YET BUILT OR TESTED: flatpak-builder was not available where this was written. Treat it as a
+# starting point, see packaging/README.md for what to check first and for the limits of a sandboxed
+# file manager (the embedded terminal runs inside the sandbox, devices and network mounts need gvfs).
+#
+#   flatpak-builder --user --install --force-clean build-flatpak packaging/flatpak/in.archdev.FileHarbor.yml
+#   flatpak run in.archdev.FileHarbor
+app-id: in.archdev.FileHarbor
+runtime: org.gnome.Platform
+runtime-version: '46'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node20
+command: nemo
+rename-desktop-file: nemo.desktop
+rename-icon: fileharbor
+
+add-extensions:
+  org.freedesktop.Platform.ffmpeg-full:
+    directory: lib/ffmpeg
+    add-ld-path: .
+    version: '23.08'
+    autodownload: true
+    autodelete: false
+
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --device=dri
+  # a file manager has to see your files
+  - --filesystem=host
+  # devices, network shares, trash (gvfs runs on the host)
+  - --filesystem=xdg-run/gvfs
+  - --filesystem=xdg-run/gvfsd
+  - --talk-name=org.gtk.vfs.*
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.FileManager1
+  - --own-name=org.Nemo
+  - --own-name=org.nemo.StorageSense
+  - --talk-name=ca.desrt.dconf
+  - --env=DCONF_USER_CONFIG_DIR=.config/dconf
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+  - '*.la'
+  - '*.a'
+
+modules:
+  - name: libexif
+    config-opts: [--disable-static]
+    sources:
+      - type: archive
+        url: https://github.com/libexif/libexif/releases/download/v0.6.25/libexif-0.6.25.tar.xz
+        sha256: 62f74cf3bf673a6e24d2de68f6741643718541f83aca5947e76e3978c25dce83
+
+  - name: libgsf   # reads Office files for Nemo's search helpers
+    config-opts: [--disable-static, --disable-gtk-doc, --without-gdk-pixbuf, --disable-introspection]
+    sources:
+      - type: archive
+        url: https://download.gnome.org/sources/libgsf/1.14/libgsf-1.14.53.tar.xz
+        sha256: 0eb59a86e0c50f97ac9cfe4d8cc1969f623f2ae8c5296f2414571ff0a9e8bcba
+
+  - name: gtksourceview4
+    buildsystem: meson
+    config-opts: [-Dgtk_doc=false, -Dvapi=false, -Dglade_catalog=false]
+    sources:
+      - type: git
+        url: https://gitlab.gnome.org/GNOME/gtksourceview.git
+        tag: 4.8.4
+
+  - name: vte
+    buildsystem: meson
+    config-opts: [-Dgtk4=false, -Dgtk3=true, -Dvapi=false, -Dgir=true, -D_systemd=false, -Dfribidi=true]
+    sources:
+      - type: git
+        url: https://gitlab.gnome.org/GNOME/vte.git
+        tag: 0.78.7
+
+  - name: libxapp
+    buildsystem: meson
+    config-opts: [-Ddocs=false, -Dvapi=false, -Dapp-lib-only=true, -Dpy-overrides-dir=/app/lib/python3.11/site-packages]
+    sources:
+      - type: git
+        url: https://github.com/linuxmint/xapp.git
+        tag: 3.2.4
+
+  - name: cinnamon-desktop
+    buildsystem: meson
+    config-opts: [-Dalsa=false, -Dsystemd=disabled]
+    sources:
+      - type: git
+        url: https://github.com/linuxmint/cinnamon-desktop.git
+        tag: 6.6.2
+
+  # the tools shell out to ffmpeg and ffprobe
+  - name: ffmpeg
+    config-opts:
+      - --enable-shared
+      - --disable-static
+      - --disable-doc
+      - --disable-debug
+      - --disable-ffplay
+      - --enable-gpl
+      - --enable-version3
+    post-install:
+      - mkdir -p /app/lib/ffmpeg
+    sources:
+      - type: git
+        url: https://git.ffmpeg.org/ffmpeg.git
+        tag: n6.1.1
+
+  # python packages the tools import; needs network access at build time (fine locally, not for Flathub)
+  - name: python-tools
+    buildsystem: simple
+    build-options:
+      build-args: [--share=network]
+    build-commands:
+      - pip3 install --prefix=/app --no-cache-dir markdown pygments pyyaml pillow
+
+  # optional features, bundled so they work out of the box (the tools still run without them)
+  - name: libraw   # camera RAW pictures (dcraw_emu)
+    config-opts: [--disable-static]
+    sources:
+      - type: archive
+        url: https://www.libraw.org/data/LibRaw-0.21.2.tar.gz
+        sha256: fe7288013206854baf6e4417d0fb63ba4ed7227bf36fff021992671c2dd34b03
+
+  - name: catdoc   # search in legacy MS Word files
+    sources:
+      - type: archive
+        url: http://ftp.wagner.pp.ru/pub/catdoc/catdoc-0.95.tar.gz
+        sha256: 514a84180352b6bf367c1d2499819dfa82b60d8c45777432fa643a5ed7d80796
+
+  # Prettier needs node at run time, so the node binary is copied into /app/bin. npm needs network access
+  # at build time (fine locally, not for Flathub).
+  - name: prettier   # code formatting in the text editor
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/node20/bin
+      build-args: [--share=network]
+    build-commands:
+      - npm install --global --prefix=/app prettier@3.10.1
+      - install -Dm755 /usr/lib/sdk/node20/bin/node /app/bin/node
+
+  - name: fileharbor
+    buildsystem: meson
+    config-opts:
+      - -Dtracker=false
+      - -Dxmp=false
+      - -Dgtk_doc=false
+      - -Dselinux=false
+      - -Dgtk_layer_shell=false
+    post-install:
+      # only the main launcher is exported
+      - rm -f /app/share/applications/nemo-autostart.desktop /app/share/applications/nemo-autorun-software.desktop
+      - install -Dm644 /run/build/fileharbor/packaging/flatpak/in.archdev.FileHarbor.metainfo.xml /app/share/metainfo/in.archdev.FileHarbor.metainfo.xml
+    sources:
+      - type: dir
+        path: ../..
