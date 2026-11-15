@@ -11,36 +11,47 @@
 #include <string.h>
 #include <stdlib.h>
 #include <libnemo-private/nemo-global-preferences.h>
+#include "fileharbor-desktop-theme.h"
+#include "fileharbor-devmode.h"
 
 const char *const nemo_theme_color_keys[] = {
 	"window", "surface", "surface_alt", "text", "text_dim",
-	"accent", "accent_text", "border", "hover", NULL
+	"accent", "accent_text", "border", "hover",
+	"surface_raised", "text_faint", "border_strong", "success", "warning", "error", "info", NULL
 };
 const char *const nemo_theme_color_labels[] = {
 	"Window background", "Panels (sidebar, file area)", "Toolbar and headers", "Text",
 	"Dim text", "Accent (selection, highlights)", "Text on accent", "Borders",
-	"Hover highlight", NULL
+	"Hover highlight",
+	"Raised surfaces (menus, popovers)", "Faint text (hints, disabled)", "Strong borders",
+	"Success", "Warning", "Error", "Information", NULL
 };
 
 typedef struct {
-	const char *window, *surface, *surface_alt, *text, *text_dim, *accent,
-		   *accent_text, *border, *hover;
+	const char *window, *surface, *surface_alt, *text, *text_dim, *accent, *accent_text, *border, *hover,
+		   *surface_raised, *text_faint, *border_strong, *success, *warning, *error, *info;
 } Palette;
 
-/* COSMIC's default dark / light palettes */
-static const Palette cosmic_dark = {
-	"#141414", "#242424", "#2e2e2e", "#ececec", "#b4b4b4",
-	"#63d0df", "#0b2a30", "#3a3a3a", "#363636"
+/* Fallbacks when a theme leaves a colour out: the FileHarbor palette (neutral, with the coral accent). The
+ * shipped themes list every colour, so these only matter for hand-written or damaged theme files. */
+static const Palette fallback_dark = {
+	"#161413", "#221f1e", "#2d2928", "#eceae9", "#bcb6b3", "#ff7a68", "#12100f", "#413c3a", "#363230",
+	"#393432", "#968d88", "#5c5551", "#5fd18a", "#f2b84b", "#ff7b72", "#6cb6ff"
 };
-static const Palette cosmic_light = {
-	"#d9d9d9", "#f7f7f7", "#ebebeb", "#161616", "#4f4f4f",
-	"#00707d", "#ffffff", "#bdbdbd", "#dcdcdc"
+static const Palette fallback_light = {
+	"#e5e2e1", "#f8f7f7", "#eeedec", "#1c1816", "#4d4541", "#c9372c", "#ffffff", "#d0cac8", "#e3dfde",
+	"#ffffff", "#6e6560", "#aaa29e", "#15803d", "#946200", "#b3261e", "#1a63c4"
 };
 
+#define CORAL_DARK  "#ff7a68"
+#define CORAL_LIGHT "#c9372c"
+
+static void apply_saved_theme (void);
+
 static GtkCssProvider *provider = NULL;
+static GtkCssProvider *dev_provider = NULL;
+static GFileMonitor *dev_monitor = NULL;
 static GKeyFile *preview_kf = NULL;
-static GList *cosmic_monitors = NULL;
-static guint reload_id = 0;
 
 /* ------------------------------------------------------------------ */
 /* paths                                                              */
@@ -143,6 +154,19 @@ collect_dir (const char *dir, gboolean builtin, GHashTable *seen, GList **out)
 	g_dir_close (d);
 }
 
+/* System first, then FileHarbor, then the other built-in themes by name, then the user's own themes by name */
+static gint
+theme_order (gconstpointer pa, gconstpointer pb)
+{
+	const NemoThemeInfo *a = pa, *b = pb;
+	int ra = g_strcmp0 (a->id, "system") == 0 ? 0 : g_strcmp0 (a->id, "fileharbor") == 0 ? 1 : a->builtin ? 2 : 3;
+	int rb = g_strcmp0 (b->id, "system") == 0 ? 0 : g_strcmp0 (b->id, "fileharbor") == 0 ? 1 : b->builtin ? 2 : 3;
+
+	if (ra != rb)
+		return ra - rb;
+	return g_utf8_collate (a->name, b->name);
+}
+
 GList *
 nemo_theme_manager_list (void)
 {
@@ -165,10 +189,11 @@ nemo_theme_manager_list (void)
 		g_list_free_full (ed, g_free);
 	}
 	g_hash_table_destroy (seen);
+	out = g_list_sort (out, theme_order);
 
 	sys = g_new0 (NemoThemeInfo, 1);
 	sys->id = g_strdup (NEMO_THEME_SYSTEM_ID);
-	sys->name = g_strdup ("System GTK theme (no overrides)");
+	sys->name = g_strdup ("Plain GTK theme (no overrides)");
 	sys->builtin = TRUE;
 	return g_list_append (out, sys);
 }
@@ -193,57 +218,8 @@ nemo_theme_manager_make_id (const char *display_name)
 }
 
 /* ------------------------------------------------------------------ */
-/* COSMIC desktop integration                                         */
+/* colour helpers                                                     */
 /* ------------------------------------------------------------------ */
-
-static char *
-cosmic_file (const char *schema, const char *key)
-{
-	return g_build_filename (g_get_user_config_dir (), "cosmic", schema, "v1", key, NULL);
-}
-
-static gboolean
-cosmic_is_dark (void)
-{
-	char *f = cosmic_file ("com.system76.CosmicTheme.Mode", "is_dark");
-	char *txt = NULL;
-	gboolean dark = TRUE;
-
-	if (g_file_get_contents (f, &txt, NULL, NULL))
-		dark = g_strstr_len (txt, -1, "false") == NULL;
-	g_free (txt);
-	g_free (f);
-	return dark;
-}
-
-/* The accent chosen in COSMIC Settings is stored as RON: (red: 0.4, green: ..., blue: ...) */
-static char *
-cosmic_accent (gboolean dark)
-{
-	char *f = cosmic_file (dark ? "com.system76.CosmicTheme.Dark.Builder" : "com.system76.CosmicTheme.Light.Builder", "accent");
-	char *txt = NULL;
-	char *result = NULL;
-	GRegex *re;
-	GMatchInfo *mi = NULL;
-
-	if (g_file_get_contents (f, &txt, NULL, NULL)) {
-		re = g_regex_new ("red:\\s*([0-9.]+).*?green:\\s*([0-9.]+).*?blue:\\s*([0-9.]+)", G_REGEX_DOTALL, 0, NULL);
-		if (g_regex_match (re, txt, 0, &mi)) {
-			char *r = g_match_info_fetch (mi, 1), *g = g_match_info_fetch (mi, 2), *b = g_match_info_fetch (mi, 3);
-
-			result = g_strdup_printf ("#%02x%02x%02x",
-						  CLAMP ((int) (g_ascii_strtod (r, NULL) * 255 + 0.5), 0, 255),
-						  CLAMP ((int) (g_ascii_strtod (g, NULL) * 255 + 0.5), 0, 255),
-						  CLAMP ((int) (g_ascii_strtod (b, NULL) * 255 + 0.5), 0, 255));
-			g_free (r); g_free (g); g_free (b);
-		}
-		g_match_info_free (mi);
-		g_regex_unref (re);
-	}
-	g_free (txt);
-	g_free (f);
-	return result;
-}
 
 static char *
 readable_on (const char *hex)
@@ -252,7 +228,34 @@ readable_on (const char *hex)
 
 	if (!gdk_rgba_parse (&c, hex))
 		return g_strdup ("#ffffff");
-	return g_strdup ((0.299 * c.red + 0.587 * c.green + 0.114 * c.blue) > 0.55 ? "#101010" : "#ffffff");
+	return g_strdup ((0.299 * c.red + 0.587 * c.green + 0.114 * c.blue) > 0.55 ? "#12100f" : "#ffffff");
+}
+
+/* a + (b - a) * t, as "#rrggbb" */
+static char *
+mix_hex (const char *a, const char *b, double t)
+{
+	GdkRGBA ca, cb;
+
+	if (!gdk_rgba_parse (&ca, a) || !gdk_rgba_parse (&cb, b))
+		return g_strdup (a);
+	return g_strdup_printf ("#%02x%02x%02x",
+				CLAMP ((int) ((ca.red + (cb.red - ca.red) * t) * 255 + 0.5), 0, 255),
+				CLAMP ((int) ((ca.green + (cb.green - ca.green) * t) * 255 + 0.5), 0, 255),
+				CLAMP ((int) ((ca.blue + (cb.blue - ca.blue) * t) * 255 + 0.5), 0, 255));
+}
+
+static const char *
+palette_value (const Palette *p, int i)
+{
+	switch (i) {
+	case 0: return p->window;         case 1: return p->surface;       case 2: return p->surface_alt;
+	case 3: return p->text;           case 4: return p->text_dim;      case 5: return p->accent;
+	case 6: return p->accent_text;    case 7: return p->border;        case 8: return p->hover;
+	case 9: return p->surface_raised; case 10: return p->text_faint;   case 11: return p->border_strong;
+	case 12: return p->success;       case 13: return p->warning;      case 14: return p->error;
+	default: return p->info;
+	}
 }
 
 /* ------------------------------------------------------------------ */
@@ -274,59 +277,173 @@ nemo_theme_manager_load (const char *id)
 	return kf;
 }
 
+static gboolean
+file_has_variants (GKeyFile *kf)
+{
+	return g_key_file_has_group (kf, "Dark") || g_key_file_has_group (kf, "Light");
+}
+
+/* The colour group to read for this variant: [Dark] or [Light], or the single [Colors] group of an older theme. */
+static const char *
+colour_group (GKeyFile *kf, gboolean dark)
+{
+	const char *want = dark ? "Dark" : "Light";
+	const char *other = dark ? "Light" : "Dark";
+
+	if (g_key_file_has_group (kf, want))
+		return want;
+	if (g_key_file_has_group (kf, "Colors"))
+		return "Colors";
+	if (g_key_file_has_group (kf, other))
+		return other;
+	return NULL;
+}
+
+const char *
+nemo_theme_manager_get_mode (void)
+{
+	static char *cached = NULL;
+
+	g_free (cached);
+	cached = g_settings_get_string (nemo_preferences, NEMO_PREFERENCES_FILEHARBOR_THEME_MODE);
+	if (g_strcmp0 (cached, "dark") != 0 && g_strcmp0 (cached, "light") != 0) {
+		g_free (cached);
+		cached = g_strdup ("system");
+	}
+	return cached;
+}
+
+void
+nemo_theme_manager_set_mode (const char *mode)
+{
+	g_settings_set_string (nemo_preferences, NEMO_PREFERENCES_FILEHARBOR_THEME_MODE, mode);
+	g_clear_pointer (&preview_kf, g_key_file_free);
+	apply_saved_theme ();
+}
+
+gboolean
+nemo_theme_manager_get_desktop_accent (void)
+{
+	return g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_FILEHARBOR_THEME_DESKTOP_ACCENT);
+}
+
+void
+nemo_theme_manager_set_desktop_accent (gboolean use)
+{
+	g_settings_set_boolean (nemo_preferences, NEMO_PREFERENCES_FILEHARBOR_THEME_DESKTOP_ACCENT, use);
+	g_clear_pointer (&preview_kf, g_key_file_free);
+	apply_saved_theme ();
+}
+
 GKeyFile *
 nemo_theme_manager_resolve (GKeyFile *raw)
 {
 	GKeyFile *out = g_key_file_new ();
-	gboolean follow = g_key_file_get_boolean (raw, "Theme", "FollowCosmic", NULL);
+	GKeyFile *base = NULL;               /* where the colours come from: the theme itself, or the desktop's theme */
+	const char *mode = nemo_theme_manager_get_mode ();
+	gboolean adaptive = g_key_file_get_boolean (raw, "Theme", "Adaptive", NULL);
+	gboolean legacy_follow = g_key_file_get_boolean (raw, "Theme", "FollowCosmic", NULL);
+	gboolean fixed_variant = !file_has_variants (raw) && !adaptive && !legacy_follow;
 	gboolean dark;
-	const Palette *base;
-	const char *defaults[9];
+	const char *group;
 	char *accent_override = NULL;
-	int i;
 	char *name = g_key_file_get_string (raw, "Theme", "Name", NULL);
+	int i;
 
-	if (follow) {
-		dark = cosmic_is_dark ();
-		accent_override = cosmic_accent (dark);
-	} else if (g_key_file_has_key (raw, "Theme", "Dark", NULL)) {
-		dark = g_key_file_get_boolean (raw, "Theme", "Dark", NULL);
-	} else {
+	/* light or dark */
+	if (fixed_variant)
+		dark = g_key_file_has_key (raw, "Theme", "Dark", NULL) ? g_key_file_get_boolean (raw, "Theme", "Dark", NULL) : TRUE;
+	else if (g_strcmp0 (mode, "dark") == 0)
 		dark = TRUE;
-	}
-	base = dark ? &cosmic_dark : &cosmic_light;
-	defaults[0] = base->window;   defaults[1] = base->surface; defaults[2] = base->surface_alt;
-	defaults[3] = base->text;     defaults[4] = base->text_dim; defaults[5] = base->accent;
-	defaults[6] = base->accent_text; defaults[7] = base->border; defaults[8] = base->hover;
+	else if (g_strcmp0 (mode, "light") == 0)
+		dark = FALSE;
+	else
+		dark = fh_desktop_prefers_dark ();
 
-	for (i = 0; nemo_theme_color_keys[i] != NULL; i++) {
-		const char *key = nemo_theme_color_keys[i];
-		char *val = g_key_file_get_string (raw, "Colors", key, NULL);
+	/* the System theme borrows the look of the desktop it runs on, with the coral accent unless the user asked
+	 * for the desktop's own accent colour */
+	if (adaptive || legacy_follow) {
+		const char *de = legacy_follow ? "cosmic" : fh_desktop_id ();
+		const char *id = g_strcmp0 (de, "generic") == 0 ? "fileharbor" : de;
 
-		if (val == NULL && i == 5 && accent_override != NULL)
-			val = g_strdup (accent_override);
-		if (val == NULL && i == 6) {
-			char *acc = g_key_file_get_string (raw, "Colors", "accent", NULL);
-
-			/* keep text-on-accent readable when only the accent was changed */
-			if (acc != NULL || accent_override != NULL)
-				val = readable_on (acc != NULL ? acc : accent_override);
-			g_free (acc);
+		base = nemo_theme_manager_load (id);
+		if (!file_has_variants (base) && !g_key_file_has_group (base, "Colors")) {
+			g_key_file_free (base);
+			base = nemo_theme_manager_load ("fileharbor");
 		}
-		if (val == NULL)
-			val = g_strdup (defaults[i]);
-		g_key_file_set_string (out, "Colors", key, val);
-		g_free (val);
+		if (legacy_follow || nemo_theme_manager_get_desktop_accent ())
+			accent_override = fh_desktop_accent ();
+		if (accent_override == NULL) {
+			GKeyFile *fh = nemo_theme_manager_load ("fileharbor");
+			const char *g = colour_group (fh, dark);
+
+			accent_override = g != NULL ? g_key_file_get_string (fh, g, "accent", NULL) : NULL;
+			g_key_file_free (fh);
+			if (accent_override == NULL)
+				accent_override = g_strdup (dark ? CORAL_DARK : CORAL_LIGHT);
+		}
+	} else {
+		base = g_key_file_ref (raw);
 	}
-	g_key_file_set_integer (out, "Metrics", "radius", CLAMP (g_key_file_get_integer (raw, "Metrics", "radius", NULL), 0, 32));
-	g_key_file_set_integer (out, "Metrics", "gap",
-				g_key_file_has_key (raw, "Metrics", "gap", NULL) ? CLAMP (g_key_file_get_integer (raw, "Metrics", "gap", NULL), 0, 32) : 10);
-	g_key_file_set_integer (out, "Metrics", "border",
-				g_key_file_has_key (raw, "Metrics", "border", NULL) ? CLAMP (g_key_file_get_integer (raw, "Metrics", "border", NULL), 0, 6) : 0);
+
+	group = colour_group (base, dark);
+	{
+		const Palette *fb = dark ? &fallback_dark : &fallback_light;
+		char *vals[16] = { NULL };
+
+		for (i = 0; nemo_theme_color_keys[i] != NULL; i++)
+			if (group != NULL)
+				vals[i] = g_key_file_get_string (base, group, nemo_theme_color_keys[i], NULL);
+		/* the colours of the raw theme win over the desktop's (a user tweak of the System theme) */
+		for (i = 0; nemo_theme_color_keys[i] != NULL; i++) {
+			if (base != raw && g_key_file_has_key (raw, "Colors", nemo_theme_color_keys[i], NULL)) {
+				g_free (vals[i]);
+				vals[i] = g_key_file_get_string (raw, "Colors", nemo_theme_color_keys[i], NULL);
+			}
+		}
+		if (accent_override != NULL && (base == raw || !g_key_file_has_key (raw, "Colors", "accent", NULL))) {
+			g_free (vals[5]);
+			vals[5] = g_strdup (accent_override);
+			if (!(base != raw && g_key_file_has_key (raw, "Colors", "accent_text", NULL))) {
+				g_free (vals[6]);
+				vals[6] = NULL;                    /* recomputed for the new accent below */
+			}
+		}
+		/* anything still missing: derive it from what the theme did give, or fall back to the FileHarbor palette */
+		if (vals[6] == NULL)
+			vals[6] = readable_on (vals[5] != NULL ? vals[5] : palette_value (fb, 5));
+		for (i = 0; nemo_theme_color_keys[i] != NULL; i++) {
+			if (vals[i] != NULL)
+				continue;
+			switch (i) {
+			case 9:  vals[i] = vals[2] != NULL && vals[3] != NULL ? mix_hex (vals[2], vals[3], 0.07) : g_strdup (palette_value (fb, i)); break;
+			case 10: vals[i] = vals[4] != NULL && vals[1] != NULL ? mix_hex (vals[4], vals[1], 0.35) : g_strdup (palette_value (fb, i)); break;
+			case 11: vals[i] = vals[7] != NULL && vals[3] != NULL ? mix_hex (vals[7], vals[3], 0.25) : g_strdup (palette_value (fb, i)); break;
+			default: vals[i] = g_strdup (palette_value (fb, i)); break;
+			}
+		}
+		for (i = 0; nemo_theme_color_keys[i] != NULL; i++) {
+			g_key_file_set_string (out, "Colors", nemo_theme_color_keys[i], vals[i]);
+			g_free (vals[i]);
+		}
+	}
+
+	/* metrics: the theme's own, else the desktop theme's, else the defaults */
+	{
+		GKeyFile *m = g_key_file_has_group (raw, "Metrics") ? raw : base;
+		int radius = g_key_file_has_key (m, "Metrics", "radius", NULL) ? g_key_file_get_integer (m, "Metrics", "radius", NULL) : 0;
+		int gap = g_key_file_has_key (m, "Metrics", "gap", NULL) ? g_key_file_get_integer (m, "Metrics", "gap", NULL) : 8;
+		int border = g_key_file_has_key (m, "Metrics", "border", NULL) ? g_key_file_get_integer (m, "Metrics", "border", NULL) : 0;
+
+		g_key_file_set_integer (out, "Metrics", "radius", CLAMP (radius, 0, 32));
+		g_key_file_set_integer (out, "Metrics", "gap", CLAMP (gap, 0, 32));
+		g_key_file_set_integer (out, "Metrics", "border", CLAMP (border, 0, 6));
+	}
 	g_key_file_set_boolean (out, "Theme", "Dark", dark);
 	g_key_file_set_string (out, "Theme", "Name", name != NULL ? name : "Custom");
 	g_free (name);
 	g_free (accent_override);
+	g_key_file_unref (base);
 	return out;
 }
 
@@ -357,9 +474,6 @@ build_css (GKeyFile *resolved, const char *extra_css_path)
 		g_string_append_printf (css, "@define-color ns_%s %s;\n", nemo_theme_color_keys[i], v);
 		g_free (v);
 	}
-	/* derived, not themeable: a red that reads on either tone */
-	g_string_append_printf (css, "@define-color ns_error %s;\n",
-				g_key_file_get_boolean (resolved, "Theme", "Dark", NULL) ? "#ff7b72" : "#b3261e");
 	body = g_strndup (g_bytes_get_data (tpl, NULL), g_bytes_get_size (tpl));
 	g_bytes_unref (tpl);
 	tmp = g_strdup_printf ("%d", g_key_file_get_integer (resolved, "Metrics", "radius", NULL));
@@ -375,6 +489,97 @@ build_css (GKeyFile *resolved, const char *extra_css_path)
 		g_free (extra);
 	}
 	return g_string_free (css, FALSE);
+}
+
+/* ------------------------------------------------------------------ */
+/* developer mode: dev.css hot reload and the theme snapshot          */
+/* ------------------------------------------------------------------ */
+
+static void
+dev_css_reload (void)
+{
+	GdkScreen *screen = gdk_screen_get_default ();
+
+	if (dev_provider != NULL) {
+		gtk_style_context_remove_provider_for_screen (screen, GTK_STYLE_PROVIDER (dev_provider));
+		g_clear_object (&dev_provider);
+	}
+	if (fh_devmode_enabled ()) {
+		char *path = fh_devmode_css_path ();
+
+		if (g_file_test (path, G_FILE_TEST_IS_REGULAR)) {
+			GError *error = NULL;
+
+			dev_provider = gtk_css_provider_new ();
+			if (!gtk_css_provider_load_from_path (dev_provider, path, &error)) {
+				g_warning ("dev.css: %s", error->message);
+				g_clear_error (&error);
+			}
+			gtk_style_context_add_provider_for_screen (screen, GTK_STYLE_PROVIDER (dev_provider),
+								   GTK_STYLE_PROVIDER_PRIORITY_USER + 1);
+			g_message ("dev.css loaded from %s", path);
+		}
+		g_free (path);
+	}
+}
+
+static void
+dev_css_changed (GFileMonitor *m, GFile *f, GFile *o, GFileMonitorEvent ev, gpointer data)
+{
+	if (ev == G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT || ev == G_FILE_MONITOR_EVENT_CREATED || ev == G_FILE_MONITOR_EVENT_DELETED)
+		dev_css_reload ();
+}
+
+static void
+dev_watch_css (void)
+{
+	if (dev_monitor == NULL) {
+		char *path = fh_devmode_css_path ();
+		char *dir = g_path_get_dirname (path);
+		GFile *file;
+
+		g_mkdir_with_parents (dir, 0755);
+		file = g_file_new_for_path (path);
+		dev_monitor = g_file_monitor_file (file, G_FILE_MONITOR_NONE, NULL, NULL);
+		if (dev_monitor != NULL)
+			g_signal_connect (dev_monitor, "changed", G_CALLBACK (dev_css_changed), NULL);
+		g_object_unref (file);
+		g_free (dir);
+		g_free (path);
+	}
+}
+
+/* What the developer panel shows: the theme as resolved, and what was detected on the desktop. */
+static void
+dev_write_snapshot (const char *theme_id, GKeyFile *resolved)
+{
+	GString *j = g_string_new ("{\n");
+	char *dir = fh_devmode_debug_dir (), *path, *accent = fh_desktop_accent ();
+	int i;
+
+	g_string_append_printf (j, "  \"theme\": \"%s\",\n  \"mode\": \"%s\",\n  \"dark\": %s,\n",
+				theme_id != NULL ? theme_id : "", nemo_theme_manager_get_mode (),
+				g_key_file_get_boolean (resolved, "Theme", "Dark", NULL) ? "true" : "false");
+	g_string_append_printf (j, "  \"desktop\": \"%s\",\n  \"desktop_prefers_dark\": %s,\n  \"desktop_accent\": %s%s%s,\n",
+				fh_desktop_id (), fh_desktop_prefers_dark () ? "true" : "false",
+				accent != NULL ? "\"" : "", accent != NULL ? accent : "null", accent != NULL ? "\"" : "");
+	g_string_append_printf (j, "  \"use_desktop_accent\": %s,\n  \"colors\": {",
+				nemo_theme_manager_get_desktop_accent () ? "true" : "false");
+	for (i = 0; nemo_theme_color_keys[i] != NULL; i++) {
+		char *v = g_key_file_get_string (resolved, "Colors", nemo_theme_color_keys[i], NULL);
+
+		g_string_append_printf (j, "%s\n    \"%s\": \"%s\"", i > 0 ? "," : "", nemo_theme_color_keys[i], v != NULL ? v : "");
+		g_free (v);
+	}
+	g_string_append_printf (j, "\n  },\n  \"metrics\": { \"radius\": %d, \"gap\": %d, \"border\": %d }\n}\n",
+				g_key_file_get_integer (resolved, "Metrics", "radius", NULL),
+				g_key_file_get_integer (resolved, "Metrics", "gap", NULL),
+				g_key_file_get_integer (resolved, "Metrics", "border", NULL));
+	g_mkdir_with_parents (dir, 0755);
+	path = g_build_filename (dir, "theme.json", NULL);
+	g_file_set_contents (path, j->str, -1, NULL);
+	g_free (path); g_free (dir); g_free (accent);
+	g_string_free (j, TRUE);
 }
 
 /* ------------------------------------------------------------------ */
@@ -409,6 +614,11 @@ apply_keyfile (GKeyFile *raw, const char *extra_css_path)
 							   GTK_STYLE_PROVIDER_PRIORITY_USER);
 		g_object_set (gtk_settings_get_default (), "gtk-application-prefer-dark-theme",
 			      g_key_file_get_boolean (resolved, "Theme", "Dark", NULL), NULL);
+		if (fh_devmode_enabled ()) {
+			dev_write_snapshot (nemo_theme_manager_get_current (), resolved);
+			dev_watch_css ();
+		}
+		dev_css_reload ();
 	}
 	g_free (css);
 	g_key_file_free (resolved);
@@ -423,6 +633,7 @@ apply_saved_theme (void)
 
 	if (g_strcmp0 (id, NEMO_THEME_SYSTEM_ID) == 0) {
 		remove_provider ();
+		dev_css_reload ();
 		return;
 	}
 	kf = nemo_theme_manager_load (id);
@@ -450,7 +661,7 @@ nemo_theme_manager_get_current (void)
 	cached = g_settings_get_string (nemo_preferences, NEMO_PREFERENCES_FILEHARBOR_THEME);
 	if (cached == NULL || cached[0] == '\0') {
 		g_free (cached);
-		cached = g_strdup ("cosmic");
+		cached = g_strdup ("system");
 	}
 	return cached;
 }
@@ -503,47 +714,21 @@ nemo_theme_manager_delete_user (const char *id)
 }
 
 /* ------------------------------------------------------------------ */
-/* follow the COSMIC desktop live                                     */
+/* follow the desktop live                                            */
 /* ------------------------------------------------------------------ */
 
-static gboolean
-reload_timeout (gpointer data)
+/* The System theme and the "follow the desktop" mode depend on the desktop's settings, so redo the theme when
+ * they change (light/dark switch, accent colour, GTK theme). */
+static void
+desktop_changed (void)
 {
 	GKeyFile *kf = nemo_theme_manager_load (nemo_theme_manager_get_current ());
 
-	reload_id = 0;
-	if (g_key_file_get_boolean (kf, "Theme", "FollowCosmic", NULL))
+	if (g_key_file_get_boolean (kf, "Theme", "Adaptive", NULL) ||
+	    g_key_file_get_boolean (kf, "Theme", "FollowCosmic", NULL) ||
+	    (g_strcmp0 (nemo_theme_manager_get_mode (), "system") == 0 && g_strcmp0 (nemo_theme_manager_get_current (), NEMO_THEME_SYSTEM_ID) != 0))
 		apply_saved_theme ();
 	g_key_file_free (kf);
-	return G_SOURCE_REMOVE;
-}
-
-static void
-cosmic_changed (GFileMonitor *m, GFile *f, GFile *o, GFileMonitorEvent ev, gpointer data)
-{
-	if (reload_id == 0)
-		reload_id = g_timeout_add (300, reload_timeout, NULL);
-}
-
-static void
-watch_cosmic (void)
-{
-	static const char *dirs[] = { "com.system76.CosmicTheme.Mode", "com.system76.CosmicTheme.Dark.Builder",
-				      "com.system76.CosmicTheme.Light.Builder", NULL };
-	int i;
-
-	for (i = 0; dirs[i] != NULL; i++) {
-		char *path = g_build_filename (g_get_user_config_dir (), "cosmic", dirs[i], "v1", NULL);
-		GFile *f = g_file_new_for_path (path);
-		GFileMonitor *m = g_file_monitor_directory (f, G_FILE_MONITOR_NONE, NULL, NULL);
-
-		if (m != NULL) {
-			g_signal_connect (m, "changed", G_CALLBACK (cosmic_changed), NULL);
-			cosmic_monitors = g_list_prepend (cosmic_monitors, m);
-		}
-		g_object_unref (f);
-		g_free (path);
-	}
 }
 
 void
@@ -552,5 +737,5 @@ nemo_theme_manager_init (void)
 	if (g_getenv ("NEMO_CLASSIC") != NULL)
 		return;
 	apply_saved_theme ();
-	watch_cosmic ();
+	fh_desktop_watch (G_CALLBACK (desktop_changed));
 }

@@ -96,6 +96,10 @@ typedef enum
 /* Spatial or browser mode */
 #define NEMO_PREFERENCES_ALWAYS_USE_BROWSER			"always-use-browser"
 #define NEMO_PREFERENCES_FILEHARBOR_THEME				"fileharbor-theme"  /* FileHarbor */
+#define NEMO_PREFERENCES_DEVELOPER_MODE				"developer-mode"  /* FileHarbor */
+#define NEMO_PREFERENCES_DEVELOPER_RELOAD			"developer-reload"  /* FileHarbor */
+#define NEMO_PREFERENCES_FILEHARBOR_THEME_MODE			"fileharbor-theme-mode"  /* FileHarbor */
+#define NEMO_PREFERENCES_FILEHARBOR_THEME_DESKTOP_ACCENT	"fileharbor-theme-desktop-accent"  /* FileHarbor */
 #define NEMO_PREFERENCES_ALWAYS_SHOW_TAB_BAR			"always-show-tab-bar"  /* FileHarbor */
 #define NEMO_PREFERENCES_FILEHARBOR_NAVIGATOR			"fileharbor-navigator"  /* FileHarbor */
 #define NEMO_PREFERENCES_TERMINAL_LINK_VIEW			"terminal-link-view"  /* FileHarbor */

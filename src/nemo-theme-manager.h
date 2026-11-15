@@ -22,9 +22,13 @@ typedef struct {
 extern const char *const nemo_theme_color_keys[];   /* NULL terminated */
 extern const char *const nemo_theme_color_labels[];
 
-#define NEMO_THEME_SYSTEM_ID "system"
+#define NEMO_THEME_SYSTEM_ID "gtk"      /* the plain GTK theme, no overrides; "system" is the adaptive default theme */
 
 void       nemo_theme_manager_init          (void);
+const char*nemo_theme_manager_get_mode      (void);                  /* "system", "dark" or "light" */
+void       nemo_theme_manager_set_mode      (const char *mode);
+gboolean   nemo_theme_manager_get_desktop_accent (void);          /* use the desktop's accent colour (System theme) */
+void       nemo_theme_manager_set_desktop_accent (gboolean use);
 GList     *nemo_theme_manager_list          (void);   /* of NemoThemeInfo* */
 void       nemo_theme_info_free             (NemoThemeInfo *info);
 const char*nemo_theme_manager_get_current   (void);

@@ -14,76 +14,109 @@ Built-in themes are read-only. Editing one and saving always creates your own co
 # Where themes live
 
 - Your themes: `~/.config/fileharbor/themes/`
-- Built-in themes: the `themes` folder inside Nemo's data directory
+- Built-in themes: the `themes` folder in FileHarbor's data directory
 
 A theme called `ocean` is the file `ocean.ini`. If you give a theme the same file name as a built-in one, yours wins. Press **Open themes folder** in the Appearance window to jump there.
 
 To share a theme, send the `.ini` file (and its `.css` file if it has one). To install one, drop the files in your themes folder.
 
+# Built-in themes
+
+Twelve themes ship with FileHarbor. Every one has a dark and a light variant; **Edit > Appearance > Mode** picks which one is used (System follows the desktop).
+
+- **System** (default): follows the desktop's light or dark setting and takes the look of its default theme on COSMIC, GNOME, KDE Plasma, Cinnamon and Hyprland, with a neutral palette elsewhere. The accent is coral. Turn on **Use the desktop's accent colour** to use the one from your desktop settings instead.
+- **FileHarbor**: warm neutrals with the coral accent.
+- **Ocean**, **Forest**, **Dusk**, **Sand**, **Slate**: calm colour themes.
+- **COSMIC**, **GNOME**, **KDE**, **Cinnamon**, **Hyprland**: palettes made to sit next to the default look of each desktop.
+
+The desktop is detected from `XDG_CURRENT_DESKTOP`, the settings portal (`org.freedesktop.appearance`), COSMIC's config files, KDE's `kdeglobals` and the GNOME/Cinnamon settings. Choose **System GTK theme** to stop overriding colours at all.
+
 # The file format
+
+A theme can have a `[Dark]` and a `[Light]` group (preferred), or a single `[Colors]` group (older style, still supported).
 
 ```
 [Theme]
 Name=Ocean
-Dark=true
+Description=Deep blue-grey with a cyan accent.
 
-[Colors]
-window=#0d1b2a
-surface=#1b263b
-surface_alt=#233047
-text=#e0e1dd
-text_dim=#8d99ae
+[Dark]
+window=#101419
+surface=#191f27
+surface_alt=#212933
+surface_raised=#2a3541
+text=#e8eaed
+text_dim=#afb7c0
+text_faint=#848e9a
 accent=#4cc9f0
-accent_text=#06202b
-border=#2f3e58
-hover=#2a3a55
+accent_text=#12100f
+border=#303c4b
+border_strong=#44556a
+hover=#28323e
+success=#5fd18a
+warning=#f2b84b
+error=#ff7b72
+info=#6cb6ff
+
+[Light]
+; same keys
 
 [Metrics]
 radius=0
 gap=8
-border=1
+border=0
 ```
 
-Every key is optional. Anything you leave out falls back to the COSMIC default for dark or light, so a theme can be as short as:
+Every key is optional. Anything left out falls back to the FileHarbor palette for that variant, so a theme can be as short as:
 
 ```
 [Theme]
 Name=Just Orange
-[Colors]
+[Dark]
 accent=#ff9933
+[Light]
+accent=#b45f00
 ```
+
+A theme with only `[Colors]` and `Dark=true|false` works as before and has a single variant.
 
 # [Theme]
 
 - `Name`: the name shown in the list.
-- `Dark`: `true` or `false`. Chooses the fallback palette and tells GTK to use its dark widgets. Defaults to `true`.
-- `FollowCosmic`: `true` makes the theme follow the COSMIC desktop: its light or dark mode and the accent colour you picked in COSMIC Settings. Colours you set explicitly in the file still win.
+- `Description`: one line shown under it.
+- `Adaptive`: `true` makes the theme follow the desktop's mode and default look (the System theme does this).
+- `Dark`: only for `[Colors]` themes. `true` or `false`. Defaults to `true`.
 
-# [Colors]
+# Colours
 
 Colours are written `#rrggbb`.
 
-- `window`: the backdrop behind everything, also used by the title bar and tab bar.
+- `window`: the backdrop behind everything, also the title bar and tab bar.
 - `surface`: the sidebar, the file area and the terminal panel.
-- `surface_alt`: the toolbar, column headers, tab bar, status bar and text fields.
-- `text`: normal text.
-- `text_dim`: secondary text such as the status bar and inactive tabs.
-- `accent`: the accent edge on selected rows, the current folder underline in the path bar, the active tab's top line, focused text fields, progress bars and primary buttons. Selected rows use a soft tint of it.
-- `accent_text`: text drawn on top of the accent. If you change `accent` and leave this out, a readable black or white is chosen for you.
-- `border`: outlines around panels and separators.
+- `surface_alt`: the toolbar, column headers, status bar and text fields.
+- `surface_raised`: menus, popovers and dialogs.
+- `text`, `text_dim`, `text_faint`: normal, secondary and hint or disabled text.
+- `accent`: selection edge, current folder underline, active tab line, focus rings, progress bars and primary buttons. Selected rows use a soft tint of it.
+- `accent_text`: text on top of the accent. If you change `accent` and leave this out, black or white is chosen for you.
+- `border`, `border_strong`: separators and outlines, and the stronger outline for fields and buttons.
 - `hover`: the highlight under the pointer.
+- `success`, `warning`, `error`, `info`: status colours.
 
 # [Metrics]
 
 Whole numbers, in pixels.
 
-- `radius`: corner rounding of panels and buttons. `0` means square corners, which is the default.
-- `gap`: the space between the sidebar, file area and terminal. The default is `10`.
-- `border`: outline thickness around panels. The default is `0`: panels are separated by tone, not lines. Raise it for a line-art look.
+- `radius`: corner rounding of panels and buttons, 0 to 32. Default `0`.
+- `gap`: space between the sidebar, file area and terminal, 0 to 32. Default `8`.
+- `border`: outline thickness around panels, 0 to 6. Default `0`: panels are separated by tone, not lines.
+
+# Making themes
+
+The built-in `.ini` files are generated by `scripts/gen-themes.py` (it also checks text contrast). To make your own, copy one into `~/.config/fileharbor/themes/` and edit it, or change colours live in **Edit > Appearance** and press **Save as new theme**.
 
 # Going further: extra CSS
 
-For anything the palette cannot express, put GTK CSS next to the theme with the same name: `ocean.ini` is paired with `ocean.css`. It is loaded after the built-in styling, so it can override anything. The palette colours are available to it as `@ns_window`, `@ns_surface`, `@ns_surface_alt`, `@ns_text`, `@ns_text_dim`, `@ns_accent`, `@ns_accent_text`, `@ns_border` and `@ns_hover`.
+For anything the palette cannot express, put GTK CSS next to the theme with the same name: `ocean.ini` is paired with `ocean.css`. It is loaded after the built-in styling, so it can override anything. Every palette colour is available to it as `@ns_<key>`, for example `@ns_window`, `@ns_surface_raised`, `@ns_text_faint`, `@ns_accent` or `@ns_error`.
 
 Useful selectors, all scoped to the file manager window:
 
@@ -110,6 +143,7 @@ CSS errors are printed to the terminal the file manager was started from, and th
 
 # Tips
 
+- Developer mode (see `DEVELOPER.md`) reloads `~/.config/fileharbor/dev.css` as you save it, which is the quickest way to try CSS.
 - Start the file manager with `NEMO_CLASSIC=1` to disable all theming for one run, for example if a theme is unreadable.
 - Choose **System GTK theme** in the list to stop overriding colours altogether.
 - Keep at least 4.5:1 contrast between `text` and `surface`, and between `accent_text` and `accent`, so text stays readable.

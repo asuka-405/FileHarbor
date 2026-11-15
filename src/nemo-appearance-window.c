@@ -129,6 +129,26 @@ select_theme (const char *id, gboolean builtin)
 }
 
 static void
+on_mode_changed (GtkComboBox *c, gpointer data)
+{
+	const char *id = gtk_combo_box_get_active_id (c);
+
+	if (ui->loading || id == NULL) return;
+	nemo_theme_manager_set_mode (id);                 /* saved and applied at once */
+	if (ui->selected_id != NULL)
+		select_theme (ui->selected_id, ui->selected_builtin);   /* show the colours of the variant now in use */
+}
+
+static void
+on_desktop_accent_toggled (GObject *sw, GParamSpec *p, gpointer data)
+{
+	if (ui->loading) return;
+	nemo_theme_manager_set_desktop_accent (gtk_switch_get_active (GTK_SWITCH (sw)));
+	if (ui->selected_id != NULL)
+		select_theme (ui->selected_id, ui->selected_builtin);
+}
+
+static void
 fill_combo (const char *select_id)
 {
 	GList *themes = nemo_theme_manager_list (), *l;
@@ -258,9 +278,9 @@ on_delete_clicked (GtkButton *b, gpointer data)
 	gtk_dialog_add_button (GTK_DIALOG (d), _("_Delete"), GTK_RESPONSE_ACCEPT);
 	if (gtk_dialog_run (GTK_DIALOG (d)) == GTK_RESPONSE_ACCEPT) {
 		nemo_theme_manager_delete_user (ui->selected_id);
-		nemo_theme_manager_set_current ("cosmic");
-		fill_combo ("cosmic");
-		select_theme ("cosmic", TRUE);
+		nemo_theme_manager_set_current ("system");
+		fill_combo ("system");
+		select_theme ("system", TRUE);
 	}
 	gtk_widget_destroy (d);
 }
@@ -437,13 +457,52 @@ build_themes_tab (void)
 
 	gtk_grid_set_row_spacing (GTK_GRID (grid), 8);
 	gtk_grid_set_column_spacing (GTK_GRID (grid), 14);
-	for (i = 0; nemo_theme_color_keys[i] != NULL; i++) {
-		l = gtk_label_new (_(nemo_theme_color_labels[i]));
-		gtk_widget_set_halign (l, GTK_ALIGN_START);
-		ui->color_btn[i] = gtk_color_button_new ();
-		g_signal_connect (ui->color_btn[i], "color-set", G_CALLBACK (on_color_set), GINT_TO_POINTER (i));
-		gtk_grid_attach (GTK_GRID (grid), l, 0, row, 1, 1);
-		gtk_grid_attach (GTK_GRID (grid), ui->color_btn[i], 1, row, 1, 1);
+	/* light or dark, and the accent colour source: they apply to every theme */
+	{
+		GtkWidget *ml = gtk_label_new (_("Appearance"));
+		GtkWidget *mc = gtk_combo_box_text_new ();
+		GtkWidget *al = gtk_label_new (_("Use the desktop's accent colour"));
+		GtkWidget *as = gtk_switch_new ();
+
+		gtk_widget_set_halign (ml, GTK_ALIGN_START);
+		gtk_widget_set_halign (al, GTK_ALIGN_START);
+		gtk_widget_set_halign (as, GTK_ALIGN_START);
+		gtk_widget_set_tooltip_text (as, _("Off: coral. On: the accent colour from your desktop settings (COSMIC, GNOME, KDE). Applies to the System theme."));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (mc), "system", _("Follow the system (light or dark)"));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (mc), "dark", _("Always dark"));
+		gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (mc), "light", _("Always light"));
+		gtk_combo_box_set_active_id (GTK_COMBO_BOX (mc), nemo_theme_manager_get_mode ());
+		gtk_switch_set_active (GTK_SWITCH (as), nemo_theme_manager_get_desktop_accent ());
+		g_signal_connect (mc, "changed", G_CALLBACK (on_mode_changed), NULL);
+		g_signal_connect (as, "notify::active", G_CALLBACK (on_desktop_accent_toggled), NULL);
+		gtk_grid_attach (GTK_GRID (grid), ml, 0, row, 1, 1);
+		gtk_grid_attach (GTK_GRID (grid), mc, 1, row, 1, 1);
+		row++;
+		gtk_grid_attach (GTK_GRID (grid), al, 0, row, 1, 1);
+		gtk_grid_attach (GTK_GRID (grid), as, 1, row, 1, 1);
+		row++;
+	}
+	{
+		GtkWidget *extra_grid = gtk_grid_new ();
+		GtkWidget *expander = gtk_expander_new (_("More colours"));
+		int extra_row = 0;
+
+		gtk_grid_set_row_spacing (GTK_GRID (extra_grid), 8);
+		gtk_grid_set_column_spacing (GTK_GRID (extra_grid), 14);
+		gtk_widget_set_margin_top (extra_grid, 6);
+		gtk_container_add (GTK_CONTAINER (expander), extra_grid);
+		for (i = 0; nemo_theme_color_keys[i] != NULL; i++) {
+			gboolean core = i < 9;
+
+			l = gtk_label_new (_(nemo_theme_color_labels[i]));
+			gtk_widget_set_halign (l, GTK_ALIGN_START);
+			ui->color_btn[i] = gtk_color_button_new ();
+			g_signal_connect (ui->color_btn[i], "color-set", G_CALLBACK (on_color_set), GINT_TO_POINTER (i));
+			gtk_grid_attach (GTK_GRID (core ? grid : extra_grid), l, 0, core ? row : extra_row, 1, 1);
+			gtk_grid_attach (GTK_GRID (core ? grid : extra_grid), ui->color_btn[i], 1, core ? row : extra_row, 1, 1);
+			if (core) row++; else extra_row++;
+		}
+		gtk_grid_attach (GTK_GRID (grid), expander, 0, row, 2, 1);
 		row++;
 	}
 	{
@@ -481,6 +540,7 @@ build_themes_tab (void)
 			{ N_("Open Markdown files in the built-in preview"), NEMO_PREFERENCES_MARKDOWN_OPEN_IN_PREVIEW },
 			{ N_("Open text and code files in the built-in editor"), NEMO_PREFERENCES_TEXT_OPEN_IN_EDITOR },
 			{ N_("Open pictures, video and music in the built-in viewers"), NEMO_PREFERENCES_MEDIA_OPEN_IN_BUILTIN },
+			{ N_("Developer mode (debug log, GTK inspector, developer panel)"), NEMO_PREFERENCES_DEVELOPER_MODE },
 		};
 		guint k;
 

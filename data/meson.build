@@ -65,7 +65,9 @@ endforeach
 ################################################################################
 
 install_data(
-  files('themes/cosmic.ini', 'themes/cosmic-dark.ini', 'themes/cosmic-light.ini', 'themes/classic.ini'),
+  files('themes/system.ini', 'themes/fileharbor.ini', 'themes/ocean.ini', 'themes/forest.ini', 'themes/dusk.ini',
+        'themes/sand.ini', 'themes/slate.ini', 'themes/cosmic.ini', 'themes/gnome.ini', 'themes/kde.ini',
+        'themes/cinnamon.ini', 'themes/hyprland.ini'),
   install_dir: join_paths(nemoDataPath, 'themes')   # FileHarbor themes
 )
 install_data(

@@ -5,10 +5,27 @@
  * the active theme (see fileharbor/docs/THEMING.md). Everything is scoped to the file
  * manager window so dialogs keep the normal GTK theme.
  *
- * Design: tonal layers instead of outlines. The title bar, tab strip and
- * backdrop share the darkest tone, panels sit on top in a lighter tone,
- * selection is a translucent accent wash with a solid accent edge, and the
- * accent is used sparingly (indicators, focus, primary actions). */
+ * Design system
+ *   Layers     window (backdrop, title bar, tab strip) < surface (sidebar, files, terminal) < surface_alt
+ *              (toolbar, inputs, headers) < surface_raised (menus, popovers, tooltips). Depth is tone, not lines;
+ *              borders are a quiet hairline that a theme can thicken.
+ *   Spacing    a 4 px grid: 4 / 8 / 12 / 16. Panel gutters are %GAP%.
+ *   Heights    controls are 32 px (buttons, inputs, tabs, path crumbs, toolbar), compact rows 28 px, the title
+ *              bar 40 px. Icon-only buttons are square.
+ *   Colour     neutrals carry the interface. The accent marks selection (a soft tint plus a solid edge), focus, the
+ *              current location and the one primary action. success / warning / error / info appear only where
+ *              something needs attention. Dim text is for secondary information, faint text for hints and
+ *              disabled items; both keep their contrast (see scripts/gen-themes.py).
+ *   States     hover = a tone step, pressed = one step further, selected = accent tint, focus = a 2 px accent ring,
+ *              disabled = faint text, never lower opacity.
+ */
+
+/* derived colours */
+@define-color ns_selected       mix(@ns_surface, @ns_accent, 0.28);
+@define-color ns_selected_alt   mix(@ns_surface_alt, @ns_accent, 0.28);
+@define-color ns_accent_hover   shade(@ns_accent, 1.08);
+@define-color ns_accent_press   shade(@ns_accent, 0.92);
+@define-color ns_pressed        mix(@ns_hover, @ns_text, 0.08);
 
 /* ---- base ---- */
 .nemo-window:not(.nemo-desktop-window) {
@@ -27,8 +44,16 @@
 .nemo-window:not(.nemo-desktop-window) .error {
     color: @ns_error;
 }
+.nemo-window:not(.nemo-desktop-window) label.warning,
+.nemo-window:not(.nemo-desktop-window) .warning {
+    color: @ns_warning;
+}
+.nemo-window:not(.nemo-desktop-window) label.success,
+.nemo-window:not(.nemo-desktop-window) .success {
+    color: @ns_success;
+}
 .nemo-window:not(.nemo-desktop-window) label:disabled {
-    color: alpha(@ns_text, 0.5);
+    color: @ns_text_faint;
 }
 .nemo-window:not(.nemo-desktop-window).csd,
 .nemo-window:not(.nemo-desktop-window) decoration {
@@ -49,52 +74,78 @@
  * Every control gets its colours from the palette, so a light palette over a
  * dark GTK theme (or the other way round) stays readable. */
 .nemo-window:not(.nemo-desktop-window) button {
+    min-height: 32px;
+    padding: 0 12px;
     border-radius: %RADIUS%px;
     background-image: none;
     background-color: @ns_surface_alt;
     color: @ns_text;
-    border: 1px solid alpha(@ns_text, 0.2);
+    border: 1px solid @ns_border;
     box-shadow: none;
     text-shadow: none;
+    transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
 }
 .nemo-window:not(.nemo-desktop-window) button:hover {
     background-color: @ns_hover;
-    border-color: alpha(@ns_text, 0.35);
+    border-color: @ns_border_strong;
 }
-.nemo-window:not(.nemo-desktop-window) button:checked,
 .nemo-window:not(.nemo-desktop-window) button:active {
-    background-color: alpha(@ns_accent, 0.3);
+    background-color: @ns_pressed;
+}
+.nemo-window:not(.nemo-desktop-window) button:checked {
+    background-color: @ns_selected_alt;
     color: @ns_text;
     border-color: @ns_accent;
 }
+.nemo-window:not(.nemo-desktop-window) button:focus {
+    outline: 2px solid alpha(@ns_accent, 0.75);
+    outline-offset: -2px;
+}
 .nemo-window:not(.nemo-desktop-window) button:disabled {
-    color: alpha(@ns_text, 0.45);
-    border-color: alpha(@ns_text, 0.1);
+    color: @ns_text_faint;
+    background-color: transparent;
+    border-color: @ns_border;
 }
 .nemo-window:not(.nemo-desktop-window) button.suggested-action {
-    background-image: none;
     background-color: @ns_accent;
     color: @ns_accent_text;
-    border: none;
+    border-color: transparent;
+    font-weight: 600;
 }
 .nemo-window:not(.nemo-desktop-window) button.suggested-action:hover {
-    background-color: shade(@ns_accent, 1.12);
+    background-color: @ns_accent_hover;
+}
+.nemo-window:not(.nemo-desktop-window) button.suggested-action:active {
+    background-color: @ns_accent_press;
+}
+.nemo-window:not(.nemo-desktop-window) button.suggested-action:disabled {
+    background-color: @ns_surface_alt;
+    color: @ns_text_faint;
 }
 .nemo-window:not(.nemo-desktop-window) button.destructive-action {
-    background-image: none;
     background-color: @ns_error;
-    color: #ffffff;
-    border: none;
+    color: @ns_window;
+    border-color: transparent;
 }
+.nemo-window:not(.nemo-desktop-window) button.destructive-action:hover {
+    background-color: shade(@ns_error, 1.08);
+}
+.nemo-window:not(.nemo-desktop-window) button.flat,
 .nemo-window:not(.nemo-desktop-window) statusbar button,
 .nemo-window:not(.nemo-desktop-window) .nemo-status-bar button {
     background-color: transparent;
     border-color: transparent;
 }
+.nemo-window:not(.nemo-desktop-window) button.flat:hover,
 .nemo-window:not(.nemo-desktop-window) statusbar button:hover,
 .nemo-window:not(.nemo-desktop-window) .nemo-status-bar button:hover {
     background-color: @ns_hover;
 }
+.nemo-window:not(.nemo-desktop-window) button.image-button {
+    min-width: 32px;
+    padding: 0;
+}
+
 .nemo-window:not(.nemo-desktop-window) entry,
 .nemo-window:not(.nemo-desktop-window) spinbutton,
 .nemo-window:not(.nemo-desktop-window) textview text,
@@ -108,18 +159,26 @@
 }
 .nemo-window:not(.nemo-desktop-window) entry,
 .nemo-window:not(.nemo-desktop-window) spinbutton {
+    min-height: 32px;
     border: none;
-    border-bottom: 2px solid alpha(@ns_text, 0.4);
-    padding: 6px 8px;
+    border-bottom: 2px solid @ns_border_strong;
+    padding: 0 10px;
+    transition: border-color 120ms ease-out;
 }
 .nemo-window:not(.nemo-desktop-window) entry:focus,
 .nemo-window:not(.nemo-desktop-window) spinbutton:focus-within {
     border-bottom-color: @ns_accent;
 }
-.nemo-window:not(.nemo-desktop-window) entry:disabled {
-    color: alpha(@ns_text, 0.5);
+.nemo-window:not(.nemo-desktop-window) entry.error {
+    border-bottom-color: @ns_error;
+}
+.nemo-window:not(.nemo-desktop-window) entry:disabled,
+.nemo-window:not(.nemo-desktop-window) entry:disabled text {
+    color: @ns_text_faint;
+    border-bottom-color: @ns_border;
 }
 .nemo-window:not(.nemo-desktop-window) spinbutton button {
+    min-height: 0;
     border: none;
     background-color: transparent;
 }
@@ -131,13 +190,30 @@
 }
 .nemo-window:not(.nemo-desktop-window) entry placeholder,
 .nemo-window:not(.nemo-desktop-window) entry text placeholder {
-    color: @ns_text_dim;
+    color: @ns_text_faint;
 }
 .nemo-window:not(.nemo-desktop-window) combobox button.combo {
-    padding: 4px 8px;
+    padding: 0 8px;
+}
+.nemo-window:not(.nemo-desktop-window) check,
+.nemo-window:not(.nemo-desktop-window) radio {
+    min-width: 16px;
+    min-height: 16px;
+    background-image: none;
+    background-color: @ns_surface_alt;
+    border: 1px solid @ns_border_strong;
+    border-radius: %RADIUS%px;
+    color: @ns_accent_text;
+    box-shadow: none;
+}
+.nemo-window:not(.nemo-desktop-window) check:checked,
+.nemo-window:not(.nemo-desktop-window) check:indeterminate,
+.nemo-window:not(.nemo-desktop-window) radio:checked {
+    background-color: @ns_accent;
+    border-color: @ns_accent;
 }
 .nemo-window:not(.nemo-desktop-window) scale trough {
-    background-color: alpha(@ns_text, 0.25);
+    background-color: @ns_border_strong;
     border: none;
     border-radius: %RADIUS%px;
     min-height: 4px;
@@ -157,9 +233,13 @@
     min-height: 14px;
     box-shadow: none;
 }
+.nemo-window:not(.nemo-desktop-window) scale slider:hover {
+    background-color: @ns_accent;
+}
 .nemo-window:not(.nemo-desktop-window) switch {
+    min-height: 22px;
     background-image: none;
-    background-color: alpha(@ns_text, 0.25);
+    background-color: @ns_border_strong;
     color: @ns_text;
     border: none;
     border-radius: %RADIUS%px;
@@ -177,6 +257,9 @@
     border-radius: %RADIUS%px;
     box-shadow: none;
 }
+.nemo-window:not(.nemo-desktop-window) switch:checked slider {
+    background-color: @ns_accent_text;
+}
 .nemo-window:not(.nemo-desktop-window) notebook > header {
     background-color: @ns_window;
     border: none;
@@ -185,7 +268,12 @@
     color: @ns_text_dim;
     background-color: transparent;
     border-radius: %RADIUS%px;
-    padding: 6px 12px;
+    min-height: 32px;
+    padding: 0 12px;
+}
+.nemo-window:not(.nemo-desktop-window) notebook > header > tabs > tab:hover {
+    color: @ns_text;
+    background-color: @ns_hover;
 }
 .nemo-window:not(.nemo-desktop-window) notebook > header > tabs > tab:checked {
     color: @ns_text;
@@ -197,22 +285,73 @@
     color: @ns_text;
 }
 .nemo-window:not(.nemo-desktop-window) frame > border {
-    border-color: alpha(@ns_text, 0.2);
+    border-color: @ns_border;
 }
 .nemo-window:not(.nemo-desktop-window) separator {
-    background-color: alpha(@ns_text, 0.15);
+    background-color: @ns_border;
+    min-width: 1px;
+    min-height: 1px;
 }
 .nemo-window:not(.nemo-desktop-window) list,
 .nemo-window:not(.nemo-desktop-window) list row {
     background-color: transparent;
     color: @ns_text;
 }
+.nemo-window:not(.nemo-desktop-window) list row {
+    min-height: 32px;
+    transition: background-color 120ms ease-out;
+}
 .nemo-window:not(.nemo-desktop-window) list row:hover {
     background-color: @ns_hover;
 }
 .nemo-window:not(.nemo-desktop-window) list row:selected {
-    background-color: alpha(@ns_accent, 0.32);
+    background-color: @ns_selected;
     color: @ns_text;
+}
+
+/* notices: an info bar is a tinted strip with the status colour as its edge */
+.nemo-window:not(.nemo-desktop-window) infobar > revealer > box,
+.nemo-window:not(.nemo-desktop-window) infobar {
+    background-image: none;
+    background-color: mix(@ns_surface_alt, @ns_info, 0.14);
+    color: @ns_text;
+    border: none;
+    border-left: 3px solid @ns_info;
+    border-radius: %RADIUS%px;
+    box-shadow: none;
+}
+.nemo-window:not(.nemo-desktop-window) infobar.warning > revealer > box,
+.nemo-window:not(.nemo-desktop-window) infobar.warning {
+    background-color: mix(@ns_surface_alt, @ns_warning, 0.14);
+    border-left-color: @ns_warning;
+}
+.nemo-window:not(.nemo-desktop-window) infobar.error > revealer > box,
+.nemo-window:not(.nemo-desktop-window) infobar.error {
+    background-color: mix(@ns_surface_alt, @ns_error, 0.14);
+    border-left-color: @ns_error;
+}
+.nemo-window:not(.nemo-desktop-window) infobar label {
+    color: @ns_text;
+}
+
+/* tool pages (editor, images, media) put a header bar at the top of their tab */
+.nemo-window:not(.nemo-desktop-window) headerbar {
+    min-height: 44px;
+    padding: 4px 8px;
+    background-image: none;
+    background-color: transparent;
+    border: none;
+    border-bottom: 1px solid @ns_border;
+    border-radius: 0;
+    box-shadow: none;
+    color: @ns_text;
+}
+.nemo-window:not(.nemo-desktop-window) headerbar .title {
+    color: @ns_text;
+    font-weight: 600;
+}
+.nemo-window:not(.nemo-desktop-window) headerbar button {
+    margin: 0 2px;
 }
 
 /* ---- menus, popovers, tooltips: separate windows, so not scoped ---- */
@@ -223,11 +362,14 @@ popover.background,
 popover.background > box,
 popover.background > stack {
     background-image: none;
-    background-color: @ns_surface_alt;
+    background-color: @ns_surface_raised;
     color: @ns_text;
-    border: 1px solid alpha(@ns_text, 0.2);
+    border: 1px solid @ns_border_strong;
     border-radius: %RADIUS%px;
-    box-shadow: 0 4px 14px alpha(black, 0.4);
+    box-shadow: 0 6px 18px alpha(black, 0.32);
+}
+menu {
+    padding: 4px 0;
 }
 menu menuitem,
 popover.background modelbutton,
@@ -238,7 +380,8 @@ popover.background row {
     background-color: transparent;
     border-radius: %RADIUS%px;
     border-color: transparent;
-    min-height: 26px;
+    min-height: 32px;
+    padding: 0 12px;
 }
 menu menuitem label,
 popover.background modelbutton label {
@@ -248,30 +391,32 @@ menu menuitem:hover,
 popover.background modelbutton:hover,
 popover.background button.flat:hover,
 popover.background row:hover {
-    background-color: alpha(@ns_accent, 0.32);
+    background-color: @ns_selected;
     color: @ns_text;
 }
 menu menuitem:disabled,
 menu menuitem:disabled label,
 popover.background modelbutton:disabled {
-    color: alpha(@ns_text, 0.45);
+    color: @ns_text_faint;
 }
 menu separator,
 popover.background separator {
-    background-color: alpha(@ns_text, 0.18);
+    background-color: @ns_border;
+    margin: 4px 0;
 }
 tooltip,
 tooltip.background {
-    background-color: @ns_surface_alt;
+    background-color: @ns_surface_raised;
     color: @ns_text;
-    border: 1px solid alpha(@ns_text, 0.25);
+    border: 1px solid @ns_border_strong;
     border-radius: %RADIUS%px;
+    box-shadow: 0 4px 12px alpha(black, 0.28);
 }
 tooltip label {
     color: @ns_text;
 }
 
-/* ---- title bar: menus left, coloured window buttons right ---- */
+/* ---- title bar: menus left, window buttons right ---- */
 .nemo-window:not(.nemo-desktop-window) .fileharbor-titlebar {
     background-image: none;
     background-color: @ns_window;
@@ -294,7 +439,8 @@ tooltip label {
     box-shadow: none;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-titlebar menubar > menuitem {
-    padding: 6px 12px;
+    min-height: 28px;
+    padding: 0 12px;
     border-radius: %RADIUS%px;
     color: @ns_text_dim;
 }
@@ -303,23 +449,24 @@ tooltip label {
     background-color: @ns_hover;
     color: @ns_text;
 }
+/* window buttons borrow the status colours, so they follow the theme */
 .nemo-window:not(.nemo-desktop-window) .fileharbor-wc {
-    min-width: 30px;
-    min-height: 30px;
+    min-width: 32px;
+    min-height: 32px;
     padding: 0;
-    margin: 0 1px;
+    margin: 0 2px;
     background-image: none;
     background-color: transparent;
     border: none;
     border-radius: %RADIUS%px;
     box-shadow: none;
 }
-.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-min   { color: #febc2e; }
-.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-max   { color: #28c840; }
-.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-close { color: #ff5f57; }
-.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-min:hover   { background-color: rgba(254, 188, 46, 0.22); }
-.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-max:hover   { background-color: rgba(40, 200, 64, 0.22); }
-.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-close:hover { background-color: rgba(255, 95, 87, 0.30); }
+.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-min   { color: @ns_warning; }
+.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-max   { color: @ns_success; }
+.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-close { color: @ns_error; }
+.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-min:hover   { background-color: alpha(@ns_warning, 0.2); }
+.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-max:hover   { background-color: alpha(@ns_success, 0.2); }
+.nemo-window:not(.nemo-desktop-window) .fileharbor-wc-close:hover { background-color: alpha(@ns_error, 0.28); }
 
 /* ---- tab strip ---- */
 .nemo-window:not(.nemo-desktop-window) .fileharbor-tabstrip {
@@ -329,10 +476,13 @@ tooltip label {
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-tab {
     color: @ns_text_dim;
-    min-width: 140px;
-    margin-right: 2px;
+    min-width: 144px;
+    min-height: 32px;
+    margin-right: 4px;
+    padding: 0 8px;
     background-color: transparent;
     border-radius: %RADIUS%px;
+    transition: background-color 120ms ease-out;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-tab label {
     color: inherit;
@@ -352,9 +502,9 @@ tooltip label {
     border-color: transparent;
     border-radius: %RADIUS%px;
     color: @ns_text_dim;
-    padding: 0 4px;
-    min-height: 22px;
-    min-width: 22px;
+    padding: 0;
+    min-height: 24px;
+    min-width: 24px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-tabstrip button:hover {
     background-color: @ns_hover;
@@ -387,7 +537,7 @@ tooltip label {
 }
 .nemo-window:not(.nemo-desktop-window) .sidebar treeview.view:selected,
 .nemo-window:not(.nemo-desktop-window) .sidebar treeview.view:selected:focus {
-    background-color: alpha(@ns_accent, 0.32);
+    background-color: @ns_selected;
     color: @ns_text;
     box-shadow: none;
     outline: none;
@@ -407,7 +557,7 @@ tooltip label {
     color: @ns_text;
 }
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane iconview {
-    padding: 8px;
+    padding: 12px;
 }
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane treeview.view:hover,
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane iconview:hover {
@@ -416,27 +566,29 @@ tooltip label {
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane .view:selected,
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane treeview.view:selected,
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane treeview.view:selected:focus {
-    background-color: alpha(@ns_accent, 0.32);
+    background-color: @ns_selected;
     color: @ns_text;
     box-shadow: none;
     outline: none;
 }
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane iconview:selected,
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane iconview:selected:focus {
-    background-color: alpha(@ns_accent, 0.25);
+    background-color: @ns_selected;
     color: @ns_text;
     box-shadow: inset 0 -3px @ns_accent;
     border-radius: %RADIUS%px;
 }
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane treeview.view header button {
+    min-height: 32px;
     background-image: none;
-    background-color: transparent;
+    background-color: @ns_surface_alt;
     color: @ns_text_dim;
     border-radius: 0;
     border: none;
+    border-bottom: 1px solid @ns_border;
     box-shadow: none;
-    padding: 8px 6px;
-    font-weight: normal;
+    padding: 0 8px;
+    font-weight: 600;
 }
 .nemo-window:not(.nemo-desktop-window) .nemo-window-pane treeview.view header button:hover {
     color: @ns_text;
@@ -446,7 +598,7 @@ tooltip label {
 /* toolbar: same tone as the file area, so it reads as one surface */
 .nemo-window:not(.nemo-desktop-window) .primary-toolbar,
 .nemo-window:not(.nemo-desktop-window) toolbar {
-    padding: 6px 8px;
+    padding: 8px;
     border-radius: 0;
     border: none;
     background-image: none;
@@ -460,8 +612,9 @@ tooltip label {
     background-image: none;
     background-color: transparent;
     color: @ns_text_dim;
-    min-height: 30px;
-    min-width: 30px;
+    min-height: 32px;
+    min-width: 32px;
+    padding: 0 4px;
 }
 .nemo-window:not(.nemo-desktop-window) .primary-toolbar button:hover,
 .nemo-window:not(.nemo-desktop-window) toolbar button:hover {
@@ -470,7 +623,7 @@ tooltip label {
 }
 .nemo-window:not(.nemo-desktop-window) .primary-toolbar button:checked,
 .nemo-window:not(.nemo-desktop-window) toolbar button:checked {
-    background-color: alpha(@ns_accent, 0.22);
+    background-color: @ns_selected_alt;
     color: @ns_accent;
     box-shadow: inset 0 -2px @ns_accent;
 }
@@ -479,9 +632,9 @@ tooltip label {
 .nemo-window:not(.nemo-desktop-window) .path-bar button,
 .nemo-window:not(.nemo-desktop-window) .path-bar button.slider-button {
     border-radius: %RADIUS%px;
-    padding: 4px 12px;
-    margin: 0 1px;
-    min-height: 26px;
+    padding: 0 12px;
+    margin: 0 2px;
+    min-height: 32px;
     background-image: none;
     background-color: transparent;
     border-color: transparent;
@@ -495,7 +648,7 @@ tooltip label {
 .nemo-window:not(.nemo-desktop-window) .path-bar button:checked {
     background-color: transparent;
     color: @ns_text;
-    font-weight: bold;
+    font-weight: 600;
     box-shadow: inset 0 -2px @ns_accent;
 }
 
@@ -513,12 +666,12 @@ tooltip label {
 }
 
 .nemo-window:not(.nemo-desktop-window) .fileharbor-terminal vte-terminal {
-    padding: 8px 10px;
+    padding: 8px 12px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-terminal searchbar {
     background-color: @ns_surface_alt;
     border: none;
-    border-top: 1px solid alpha(@ns_text, 0.08);
+    border-top: 1px solid @ns_border;
 }
 
 /* ---- status bar ---- */
@@ -530,6 +683,7 @@ tooltip label {
     background-color: transparent;
     border: none;
     color: @ns_text_dim;
+    font-size: 92%;
 }
 
 .nemo-window:not(.nemo-desktop-window) scrollbar {
@@ -542,12 +696,12 @@ tooltip label {
 }
 .nemo-window:not(.nemo-desktop-window) scrollbar slider {
     border-radius: %RADIUS%px;
-    background-color: alpha(@ns_text, 0.4);
-    min-width: 6px;
-    min-height: 6px;
+    background-color: alpha(@ns_text, 0.32);
+    min-width: 8px;
+    min-height: 8px;
 }
 .nemo-window:not(.nemo-desktop-window) scrollbar slider:hover {
-    background-color: alpha(@ns_text, 0.55);
+    background-color: alpha(@ns_text, 0.5);
 }
 .nemo-window:not(.nemo-desktop-window) scrollbar slider:active {
     background-color: @ns_accent;
@@ -563,6 +717,22 @@ tooltip label {
     border: none;
     min-height: 6px;
 }
+.nemo-window:not(.nemo-desktop-window) levelbar block.filled {
+    background-color: @ns_accent;
+    border: none;
+    border-radius: %RADIUS%px;
+}
+.nemo-window:not(.nemo-desktop-window) levelbar block.filled.high {
+    background-color: @ns_warning;
+}
+.nemo-window:not(.nemo-desktop-window) levelbar block.filled.full {
+    background-color: @ns_error;
+}
+.nemo-window:not(.nemo-desktop-window) levelbar block.empty {
+    background-color: @ns_hover;
+    border: none;
+    border-radius: %RADIUS%px;
+}
 
 /* ---- column navigator (replaces the sidebar) ---- */
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav {
@@ -573,7 +743,7 @@ tooltip label {
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav flowbox {
     background-color: transparent;
-    padding: 4px 6px;
+    padding: 4px 8px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav flowboxchild {
     padding: 0;
@@ -586,7 +756,7 @@ tooltip label {
     border-radius: %RADIUS%px;
     box-shadow: none;
     color: @ns_text_dim;
-    padding: 6px 8px;
+    padding: 0 8px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-place:hover {
     background-color: @ns_hover;
@@ -595,7 +765,7 @@ tooltip label {
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav scrolledwindow {
     background-color: transparent;
     border: none;
-    border-right: 1px solid alpha(@ns_text, 0.08);
+    border-right: 1px solid @ns_border;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav treeview.view,
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav treeview.view.fileharbor-column {
@@ -603,22 +773,23 @@ tooltip label {
     color: @ns_text;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav treeview.view header button {
+    min-height: 32px;
     background-image: none;
     background-color: transparent;
     color: @ns_text_dim;
     border: none;
-    border-bottom: 1px solid alpha(@ns_text, 0.08);
+    border-bottom: 1px solid @ns_border;
     border-radius: 0;
     box-shadow: none;
-    font-weight: bold;
-    padding: 6px 8px;
+    font-weight: 600;
+    padding: 0 8px;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav treeview.view:hover {
     background-color: @ns_hover;
 }
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav treeview.view:selected,
 .nemo-window:not(.nemo-desktop-window) .fileharbor-columnnav treeview.view:selected:focus {
-    background-color: alpha(@ns_accent, 0.32);
+    background-color: @ns_selected;
     color: @ns_text;
     box-shadow: none;
     outline: none;
