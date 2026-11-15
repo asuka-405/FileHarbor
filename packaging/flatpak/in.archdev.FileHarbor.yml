@@ -112,6 +112,7 @@ modules:
       - --disable-debug
       - --disable-ffplay
       - --disable-ffnvcodec
+      - --disable-vulkan
       - --enable-gpl
       - --enable-version3
     post-install:
@@ -119,8 +120,8 @@ modules:
     sources:
       - type: git
         url: https://git.ffmpeg.org/ffmpeg.git
-        tag: n6.1.1
-        commit: e38092ef9395d7049f871ef4d5411eb410e283e0
+        tag: n7.1.5
+        commit: eefb3654c445a9004712036be4ffb01a68b2c3e1
 
   # Pillow, PyYAML and Pygments (Markdown comes with the runtime)
   - python3-modules.yaml
