@@ -3,6 +3,20 @@
 All notable changes to FileHarbor. The version is in the `VERSION` file; FileHarbor 0.x is based on
 Nemo 6.8.3.
 
+## Unreleased
+
+### Interface
+- Renamed the app identity to FileHarbor / `in.archdev.FileHarbor` (binary `fileharbor`, with a `nemo`
+  symlink); existing settings are copied over on first start.
+- New design system: spacing scale, control heights, type scale, states and focus rings.
+- 12 themes with dark and light variants, a Mode choice and an adaptive System theme (default) that detects
+  COSMIC, GNOME, KDE Plasma, Cinnamon and Hyprland; coral accent by default, optional desktop accent.
+- Developer mode: debug log, GTK inspector, `dev.css` hot reload and a developer panel.
+
+### Fixes
+- Storage Sense connects again from an installed copy (falls back to starting the service directly).
+- The launcher script removes entries left by earlier installs, so only one FileHarbor entry remains.
+
 ## 0.1.0
 
 First release.

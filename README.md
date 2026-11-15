@@ -38,10 +38,13 @@ in FileHarbor here, not to them.
 ## What FileHarbor adds on top of Nemo
 
 ### Look and layout
-- **COSMIC-style theme** (default `cosmic`): follows the COSMIC desktop's light/dark mode and accent
-  colour, square corners, flat tonal panels. Colour themes are small `.ini` files; edit everything live in
-  **Edit > Appearance**, which also has the theming guide ([`fileharbor/docs/THEMING.md`](fileharbor/docs/THEMING.md)).
-  Set `NEMO_CLASSIC=1` to turn all theming off for one run.
+- **12 built-in themes**, each with a dark and a light variant. The default, **System**, follows your desktop's
+  light or dark setting and default look (COSMIC, GNOME, KDE Plasma, Cinnamon, Hyprland) with a coral accent;
+  there are also FileHarbor, Ocean, Forest, Dusk, Sand and Slate, and one per desktop. Themes are small `.ini`
+  files; edit everything live in **Edit > Appearance**, which also has the theming guide
+  ([`fileharbor/docs/THEMING.md`](fileharbor/docs/THEMING.md)). Set `NEMO_CLASSIC=1` to turn all theming off for one run.
+- **Developer mode** (Appearance, `--developer` or `FILEHARBOR_DEV=1`): debug log, GTK inspector, `dev.css` hot
+  reload and a developer panel ([`fileharbor/docs/DEVELOPER.md`](fileharbor/docs/DEVELOPER.md)).
 - **Menus in the title bar**, coloured window buttons on the right, an always-visible **tab strip**, the
   **breadcrumb bar and terminal at the top** of the file area.
 - **Sidebar that fits its content** (140 to 280 px), or a **Miller-column navigator** that shows the
@@ -165,7 +168,7 @@ comment, so comparing with a new Nemo release stays manageable.
       tools/            built-in tools: Python/GTK pages (fhtools/), `fileharbor-tools`, tests/
       extensions/       bundled sample extension (system-glance)
       storage-sense/    indexing service (D-Bus: in.archdev.FileHarbor.StorageSense)
-      docs/             THEMING.md, EXTENSIONS.md
+      docs/             THEMING.md, DEVELOPER.md, EXTENSIONS.md
     scripts/            build.sh, run.sh, test.sh, release.sh
     packaging/          aur/, flatpak/, debian/ (inherited)
     docs/upstream/      Nemo's own README
