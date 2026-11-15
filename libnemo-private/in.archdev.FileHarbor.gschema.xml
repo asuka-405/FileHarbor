@@ -170,9 +170,29 @@
       <description>When true, a plain interactive ssh login started in the embedded terminal reports the remote folder so the file view can follow it over sftp.</description>
     </key>
     <key name="fileharbor-theme" type="s">
-      <default>'cosmic'</default>
+      <default>'system'</default>
       <summary>FileHarbor theme</summary>
-      <description>Id of the active file manager theme: the name of a .ini file in ~/.config/nemo/themes or the shared themes folder, or "system" to use the plain GTK theme. See fileharbor/docs/THEMING.md.</description>
+      <description>Id of the active file manager theme: the name of a .ini file in ~/.config/fileharbor/themes or the shared themes folder; "system" follows the desktop, "gtk" uses the plain GTK theme. See fileharbor/docs/THEMING.md.</description>
+    </key>
+    <key name="developer-mode" type="b">
+      <default>false</default>
+      <summary>Developer mode</summary>
+      <description>Turns on the debug log (~/.cache/fileharbor/debug), the GTK inspector, g_debug output, ~/.config/fileharbor/dev.css hot reload and the FileHarbor developer panel (Tools menu, Ctrl+Alt+D). Also switched on by --developer or FILEHARBOR_DEV=1.</description>
+    </key>
+    <key name="developer-reload" type="u">
+      <default>0</default>
+      <summary>Reload request</summary>
+      <description>Counter that the developer panel increases to make the running FileHarbor reload its theme and CSS.</description>
+    </key>
+    <key name="fileharbor-theme-mode" type="s">
+      <default>'system'</default>
+      <summary>Light or dark</summary>
+      <description>"system" follows the desktop's light/dark setting, "dark" and "light" force one. Applies to every theme that has both variants.</description>
+    </key>
+    <key name="fileharbor-theme-desktop-accent" type="b">
+      <default>false</default>
+      <summary>Use the desktop's accent colour</summary>
+      <description>When true the System theme takes the accent colour from the desktop settings (COSMIC, GNOME, KDE) instead of the default coral.</description>
     </key>
     <key name="always-use-browser" type="b">
       <default>true</default>

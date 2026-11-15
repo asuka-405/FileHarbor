@@ -31,6 +31,7 @@
 #include "nemo-application.h"
 #include "nemo-theme-manager.h"  /* FileHarbor */
 #include "fileharbor-tools-menu.h"  /* FileHarbor */
+#include "fileharbor-devmode.h"  /* FileHarbor */
 
 #include "nemo-desktop-window.h"
 
@@ -323,6 +324,7 @@ init_icons_and_styles (void)
                                   GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     /* FileHarbor: themes (default "cosmic"). NEMO_CLASSIC=1 turns it off. */
+    fh_devmode_init ();
     nemo_theme_manager_init ();
 
     GtkSettings *gtk_settings = gtk_settings_get_default ();

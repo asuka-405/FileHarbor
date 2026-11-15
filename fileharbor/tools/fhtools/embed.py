@@ -78,6 +78,9 @@ def build(tool, files):
     from .hub import HubPage
     if tool in ("hub", ""):
         return HubPage()
+    if tool == "fhdev":
+        from . import devmode_tool
+        return devmode_tool.run()
     if tool == "devtools":
         return devtools.run(["--file=%s" % f for f in files])
     if tool in ("editor", "markdown"):

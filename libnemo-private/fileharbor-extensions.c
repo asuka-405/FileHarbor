@@ -375,6 +375,7 @@ static const FhToolInfo tool_table[] = {
 	{ "media",    "Media player",            "applications-multimedia-symbolic",  "Play music and video; trim, convert and capture" },
 	{ "editor",   "Text editor",             "accessories-text-editor-symbolic",  "Code and text with syntax highlighting; Markdown and MDX preview" },
 	{ "hub",      "Tools",                   "applications-utilities-symbolic",   "All tools" },
+	{ "fhdev",    "FileHarbor developer panel", "utilities-terminal-symbolic",    "Logs, theme and desktop detection, settings, services (developer mode)" },
 	/* below the hub: not listed in menus, kept so older links and the right-click items still resolve */
 	{ "preview",  "Markdown preview",        "text-x-generic-symbolic",           "Rendered Markdown" },
 	{ "resize",   "Resize pictures",         "view-fullscreen-symbolic",          "Resize or convert many pictures at once" },

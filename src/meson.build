@@ -51,6 +51,8 @@ nemoCommon_sources = [
   'fileharbor-tools-menu.c',  # FileHarbor
   'nemo-terminal-panel.c',  # FileHarbor
   'nemo-theme-manager.c',  # FileHarbor
+  'fileharbor-desktop-theme.c',  # FileHarbor
+  'fileharbor-devmode.c',  # FileHarbor
   'nemo-tab-strip.c',  # FileHarbor
   'nemo-column-nav.c',  # FileHarbor
   'nemo-extensions-window.c',  # FileHarbor

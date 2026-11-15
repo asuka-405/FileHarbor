@@ -76,6 +76,7 @@
 #include <gio/gio.h>
 #include <eel/eel-gtk-extensions.h>
 #include <eel/eel-stock-dialogs.h>
+#include "fileharbor-devmode.h"  /* FileHarbor */
 
 #define GNOME_DESKTOP_USE_UNSTABLE_API
 
@@ -870,6 +871,7 @@ nemo_main_application_local_command_line (GApplication *application,
     gboolean no_desktop_ignored = FALSE;
 	gboolean fix_cache = FALSE;
     gboolean debug = FALSE;
+    gboolean developer_mode = FALSE;
 	gboolean select = FALSE;
 	gchar **remaining = NULL;
     GApplicationFlags init_flags;
@@ -902,6 +904,8 @@ nemo_main_application_local_command_line (GApplication *application,
 		  "Repair the user thumbnail cache - this can be useful if you're having trouble with file thumbnails.  Must be run as root", NULL },
         { "debug", 0, 0, G_OPTION_ARG_NONE, &debug,
           "Enable debugging code.  Example usage: 'NEMO_DEBUG=Actions,Window nemo --debug'.  Use NEMO_DEBUG=help for more topics.", NULL },
+		{ "developer", 0, 0, G_OPTION_ARG_NONE, &developer_mode,
+		  "Developer mode: debug log, GTK inspector, g_debug output, dev.css hot reload and the developer panel (same as FILEHARBOR_DEV=1).", NULL },
 		{ "quit", 'q', 0, G_OPTION_ARG_NONE, &kill_shell, 
 		  "Quit Nemo.", NULL },
 		{ G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &remaining, NULL,  "[URI...]" },
@@ -928,6 +932,11 @@ nemo_main_application_local_command_line (GApplication *application,
 
 		*exit_status = EXIT_FAILURE;
 		goto out;
+	}
+
+	if (developer_mode) {
+		g_setenv ("FILEHARBOR_DEV", "1", TRUE);
+		fh_devmode_early_init ();
 	}
 
 	if (version) {

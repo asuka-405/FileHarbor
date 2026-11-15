@@ -60,6 +60,7 @@
 
 #include <libnemo-extension/nemo-menu-provider.h>
 #include <libnemo-private/nemo-file-utilities.h>
+#include "fileharbor-devmode.h"  /* FileHarbor */
 #include <libnemo-private/nemo-global-preferences.h>
 #include <libnemo-private/nemo-icon-names.h>
 #include <libnemo-private/nemo-ui-utilities.h>
@@ -316,7 +317,7 @@ action_tool_callback (GtkAction *action,
 {
 	static const struct { const char *name; const char *tool; } map[] = {
 		{ "ToolDevtools", "devtools" }, { "ToolImage", "image" }, { "ToolMedia", "media" },
-		{ "ToolEditor", "editor" },
+		{ "ToolEditor", "editor" }, { "ToolFhDev", "fhdev" },
 	};
 	NemoWindow *window = NEMO_WINDOW (user_data);
 	NemoWindowSlot *slot = nemo_window_get_active_slot (window);
@@ -1524,6 +1525,8 @@ static const GtkActionEntry main_entries[] = {
                                  N_("Play music and video; trim, convert and capture"), G_CALLBACK (action_tool_callback) },
                                { "ToolEditor", "accessories-text-editor-symbolic", N_("_Text editor"), NULL,
                                  N_("Code and text with syntax highlighting; Markdown and MDX preview"), G_CALLBACK (action_tool_callback) },
+                               { "ToolFhDev", "utilities-terminal-symbolic", N_("_FileHarbor developer panel"), "<control><alt>D",
+                                 N_("Logs, theme and desktop detection, settings and services (developer mode)"), G_CALLBACK (action_tool_callback) },
                                { "ManageExtensions", "application-x-addon-symbolic", N_("_Extensions…"), NULL,
                                  N_("Turn extensions on or off, and learn how to make one"), G_CALLBACK (action_manage_extensions_callback) },
   /* name, stock id */         { "Close", "xsi-window-close-symbolic",
@@ -2059,6 +2062,22 @@ nemo_window_initialize_actions (NemoWindow *window)
 			  NULL);
 }
 
+/* FileHarbor: the developer panel entry exists only while developer mode is on */
+static void
+update_devmode_action (NemoWindow *window)
+{
+	GtkAction *a = gtk_action_group_get_action (window->details->main_action_group, "ToolFhDev");
+
+	if (a != NULL)
+		gtk_action_set_visible (a, fh_devmode_enabled ());
+}
+
+static void
+devmode_setting_changed (GSettings *settings, const char *key, gpointer user_data)
+{
+	update_devmode_action (NEMO_WINDOW (user_data));
+}
+
 /**
  * nemo_window_initialize_menus
  *
@@ -2094,6 +2113,9 @@ nemo_window_initialize_menus (NemoWindow *window)
     }
 
     /* hide menu items that are not currently supported by the vfs */
+    update_devmode_action (window);
+    g_signal_connect_object (nemo_preferences, "changed::developer-mode", G_CALLBACK (devmode_setting_changed), window, 0);
+
     action_to_hide = gtk_action_group_get_action (action_group, "Go to Computer");
     gtk_action_set_visible (action_to_hide, eel_vfs_supports_uri_scheme ("computer"));
     action_to_hide = gtk_action_group_get_action (action_group, "Go to Trash");
